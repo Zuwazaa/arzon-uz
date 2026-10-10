@@ -17,7 +17,7 @@ import {
   guarded,
   formData,
 } from './core.js';
-import { progress } from './shop.js';
+import { progress } from './components.js';
 
 export const tabs = (base, items, cur) =>
   html`<div class="tabs" role="tablist">${items.map(([k, l, n]) => html`<a role="tab" class="tab ${k === cur ? 'on' : ''}" href="${base}/${k}" data-link>${t(l)}${n ? html` <span class="pill">${n}</span>` : ''}</a>`)}</div>`;

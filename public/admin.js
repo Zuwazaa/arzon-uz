@@ -22,7 +22,7 @@ import {
   formData,
 } from './core.js';
 import { tabs } from './seller.js';
-import { progress } from './shop.js';
+import { progress } from './components.js';
 
 route('/admin', () => navigate('/admin/stats', true), { roles: ['admin'] });
 route(
