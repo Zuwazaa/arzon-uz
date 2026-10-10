@@ -89,6 +89,6 @@ Optom_uz_PRD.docx   asl PRD
 - Guruh muvaffaqiyatli bo‘lsa, yakuniy narx umumiy miqdorga qarab hisoblanadi; ilgari yuqori narxda to‘lagan ishtirokchilarga farq qaytariladi.
 - Muddat tugab limit to‘lmasa, guruh `failed` bo‘ladi va to‘lovlar qaytarish ro‘yxatiga tushadi.
 - Refund hozir qo‘lda: Admin → Buyurtmalar → “Refund boshlash” → “Refund bajarildi”.
-- “Tejash” summasi faqat admin tasdiqlagan chakana narx bo‘lsa ko‘rsatiladi.
+- “Tejash” summasi faqat admin tasdiqlagan bozor narxi bo‘lsa ko‘rsatiladi.
 - Sotuvchi xaridorning telefon va manzilini ko‘rmaydi.
 - Qilinmagan: bir manzilga bir nechta buyurtmani birlashtirish (FR-15, P2).

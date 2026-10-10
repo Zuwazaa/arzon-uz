@@ -25,7 +25,7 @@ Demo hisoblar (parol: `demo12345`): admin `+998900000001`, sotuvchilar `+9989000
 | FR-10 sotuvchi paneli | `/seller` (mahsulot, narx bosqichi, zaxira, guruh, buyurtma holati) |
 | FR-11 admin | `/admin` (buyurtma, yetkazish, guruh, refund, moderatsiya, zona/sozlama, audit, KPI) |
 | FR-12 to‘lov | `server/payments.js` — `paid` faqat imzolangan webhook orqali |
-| FR-13 tejash | faqat admin tasdiqlagan chakana narx bo‘lsa ko‘rsatiladi |
+| FR-13 tejash | faqat admin tasdiqlagan bozor narxi bo‘lsa ko‘rsatiladi |
 | FR-14 havola | guruh sahifasida “ulashish” |
 | FR-15 manzillarni birlashtirish (P2) | qilinmagan |
 

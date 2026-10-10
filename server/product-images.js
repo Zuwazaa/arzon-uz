@@ -57,6 +57,10 @@ export const WIKI = {
   cake: 'e/ef/Chocolate_cake_and_Victoria_sponge.jpg/960px-Chocolate_cake_and_Victoria_sponge.jpg',
   muffins: 'd/d6/Muffins.JPG/960px-Muffins.JPG',
   gingerbread: '4/45/Chocolate_covered_gingerbread_cookies_01.jpg/960px-Chocolate_covered_gingerbread_cookies_01.jpg',
+  mineralWater: 'd/de/Blue_glass_with_carbonated_water.jpg/960px-Blue_glass_with_carbonated_water.jpg',
+  appleJuice: 'b/ba/Apfelsaft.jpg/960px-Apfelsaft.jpg',
+  orangeJuice: '6/67/Orange_juice_1_edit1.jpg/960px-Orange_juice_1_edit1.jpg',
+  lemonade: '0/0a/Dos_Locos_-_Papaya_Juice.jpg/960px-Dos_Locos_-_Papaya_Juice.jpg',
 };
 export const WIKI_BASE = 'https://upload.wikimedia.org/wikipedia/commons/thumb/';
 export const imgUrl = (key) => `/img/p/${key}.jpg`;

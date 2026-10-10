@@ -5,7 +5,7 @@ import { db, tx, nowIso } from './db.js';
 import { hashPassword } from './auth.js';
 import { slugify } from './util.js';
 import { WIKI, imgUrl } from './product-images.js';
-import { addExtraCatalog, addBakeryCatalog } from './catalog-extra.js';
+import { addExtraCatalog, addBakeryCatalog, addDrinksCatalog } from './catalog-extra.js';
 
 /**
  * Demo data for the pilot. Accounts (password from DEMO_PASSWORD, default "demo12345"):
@@ -55,7 +55,7 @@ export function seedIfEmpty() {
     };
     // ---- Don va un mahsulotlari
     const rice = product(s1, 'Guruch “Lazer” (devzira)', 'Don va un mahsulotlari', '🍚', img.rice, 'kg', 5, 25, 2000, 19000,
-      'Chilonzor bozori chakana narxi, 2026-10 (tekshirilgan)', [[25, 16500], [100, 15500], [250, 14800]], 'Birinchi navli devzira guruch, 5 kg qadoqlarda. Palov uchun ideal.');
+      'Chilonzor bozori bozor narxii, 2026-10 (tekshirilgan)', [[25, 16500], [100, 15500], [250, 14800]], 'Birinchi navli devzira guruch, 5 kg qadoqlarda. Palov uchun ideal.');
     product(s1, 'Un “Oliy nav”', 'Don va un mahsulotlari', '🥖', img.flour, 'kg', 10, 50, 3000, 7500,
       'Makro supermarket narxi, 2026-10 (tekshirilgan)', [[50, 6400], [200, 6000], [500, 5700]], '50 kg qoplarda emas, 10 kg qadoqlarda sotiladi.');
     product(s1, 'Makaron (spagetti) 1 kg', 'Don va un mahsulotlari', '🍝', img.pasta, 'dona', 10, 20, 1800,
@@ -134,6 +134,7 @@ export function seedIfEmpty() {
     grp(cannedTomato, s1, 120, 12, 60);
     addExtraCatalog();
     addBakeryCatalog();
+    addDrinksCatalog();
   });
   return true;
 }

@@ -133,8 +133,33 @@ export function addBakeryCatalog() {
   return true;
 }
 
+/** Adds the drinks category once (safe to call repeatedly). */
+export function addDrinksCatalog() {
+  const sellers = db.prepare("SELECT id FROM users WHERE role='seller' ORDER BY id").all();
+  if (!sellers.length) return false;
+  if (db.prepare('SELECT 1 FROM categories WHERE slug=?').get(slugify('Ichimliklar'))) return false;
+  const s2 = (sellers[1] || sellers[0]).id;
+  const now = nowIso();
+  tx(() => {
+    const cats = { Ichimliklar: Number(db.prepare('INSERT INTO categories(name,slug,emoji) VALUES(?,?,?)').run('Ichimliklar', slugify('Ichimliklar'), '🥤').lastInsertRowid) };
+    const product = makeProduct(cats, now);
+    const IC = 'Ichimliklar';
+    const suv = product(s2, 'Mineral suv 1,5 l, quti 6 dona', IC, '💧', 'mineralWater', 'quti', 1, 5, 900, 24000, SRC('Korzinka'),
+      [[5, 17500], [20, 16000], [60, 14800]], 'Gazsiz mineral suv, 1,5 litrlik shisha, bir qutida 6 dona.');
+    product(s2, 'Olma sharbati 1 l, quti 12 dona', IC, '🧃', 'appleJuice', 'quti', 1, 3, 300, 110000, SRC('Makro supermarket'),
+      [[3, 84000], [10, 78000], [30, 73000]], 'Tabiiy olma sharbati, 1 litrlik paket, bir qutida 12 dona.');
+    product(s2, 'Apelsin sharbati 1 l, quti 12 dona', IC, '🍊', 'orangeJuice', 'quti', 1, 3, 300, 125000, SRC('Makro supermarket'),
+      [[3, 96000], [10, 89000], [30, 83000]], 'Apelsin sharbati, 1 litrlik paket, bir qutida 12 dona.');
+    product(s2, 'Limonad 1,5 l, quti 6 dona', IC, '🥤', 'lemonade', 'quti', 1, 5, 600, 52000, SRC('Korzinka'),
+      [[5, 38500], [20, 35500], [60, 33000]], 'Gazlangan limonad, 1,5 litrlik shisha, bir qutida 6 dona.');
+    addGroup(suv, s2, 100, 5, 72, now);
+  });
+  return true;
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   console.log('Mahalliy rasmga o‘tkazilgan mahsulotlar:', localizeImages());
   console.log(addExtraCatalog() ? 'Bitiruv, kantstovar va to‘y bo‘limlari qo‘shildi.' : 'Bitiruv, kantstovar va to‘y bo‘limlari allaqachon bor.');
+  console.log(addDrinksCatalog() ? 'Ichimliklar qo‘shildi.' : 'Ichimliklar allaqachon bor.');
   console.log(addBakeryCatalog() ? 'Shirinliklar va pishiriqlar qo‘shildi.' : 'Shirinliklar va pishiriqlar allaqachon bor.');
 }

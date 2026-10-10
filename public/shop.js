@@ -21,13 +21,19 @@ export const thumbMedia = (p) => (p.imageUrl
 
 const saving = (retail, price) => (retail && retail.price > price ? { amt: retail.price - price, pct: Math.round((1 - price / retail.price) * 100) } : null);
 
+const saveOverlay = (p) => {
+  const base = p.retail ? p.retail.price : p.tiers[0].unitPrice;
+  const rows = p.tiers.map((x) => ({ x, amt: (base - x.unitPrice) * x.minQty })).filter((r) => r.amt > 0);
+  if (!rows.length) return '';
+  return html`<div class="saveov" aria-hidden="true"><div class="saveov-h">${p.retail ? t('Bozor narxiga nisbatan tejash') : t('Ko‘p olsangiz tejaysiz')}</div>
+    ${rows.map(({ x, amt }) => html`<div class="srow2"><span>${num(x.minQty)}+ ${p.unit}</span><b>−<span data-amt="${amt}">${num(amt)}</span> ${t('so‘m')}</b></div>`)}</div>`;
+};
+
 export const productCard = (p) => { const s = saving(p.retail, p.entryPrice); return html`
   <a class="card product" href="/products/${p.slug}" data-link>
-    <div class="thumb">${s ? html`<span class="off-tag">−${s.pct}%</span>` : ''}${p.openGroupId ? html`<span class="tag">${t('Guruh bor')}</span>` : ''}${thumbMedia(p)}</div>
+    <div class="thumb">${s ? html`<span class="off-tag">−${s.pct}%</span>` : ''}${p.openGroupId ? html`<span class="tag">${t('Guruh bor')}</span>` : ''}${thumbMedia(p)}${saveOverlay(p)}</div>
     <h3>${p.title}</h3>
     <div class="price">${money(p.entryPrice)}<small> / 1 ${p.unit}</small></div>
-    ${s ? html`<div class="was">${t('Bozorda')}: <s>${money(p.retail.price)}</s></div><div class="off">${t('Siz')} ${money(s.amt)} ${t('tejaysiz')}</div>` : ''}
-    <div class="small muted need">${t('Kamida')} ${num(p.minIndividualQty)} ${p.unit} ${t('olinadi')}</div>
     <span class="go">${t('Ko‘rish va tanlash')}</span>
   </a>`; };
 
@@ -46,14 +52,14 @@ export const tierTable = (tiers, unit, activeQty, retail) => {
   let active = tiers[0];
   for (const x of tiers) if (activeQty >= x.minQty) active = x;
   const has = tiers.some((x) => saving(retail, x.unitPrice));
-  return html`<table class="tiers"><thead><tr><th>${t('Miqdor')}</th><th>${t('Birlik narxi')}</th>${has ? html`<th>${t('Chakanadan tejash')}</th>` : ''}</tr></thead><tbody>
+  return html`<table class="tiers"><thead><tr><th>${t('Miqdor')}</th><th>${t('Birlik narxi')}</th>${has ? html`<th>${t('Bozor narxidan tejash')}</th>` : ''}</tr></thead><tbody>
     ${tiers.map((x) => { const s = saving(retail, x.unitPrice); return html`<tr class="${x === active ? 'on' : ''}"><td>${num(x.minQty)}+ ${unit}</td><td>${money(x.unitPrice)}</td>${has ? html`<td class="sv">${s ? html`−${s.pct}% · ${money(s.amt)}` : '—'}</td>` : ''}</tr>`; })}</tbody></table>`;
 };
-const savingsBox = (p) => (p.retail ? html`<div class="card save-box"><b>${t('Chakana narxga nisbatan tejash')}</b>
-  <p class="small">${t('Chakana narx')} — ${t('bu mahsulotning do‘kon/bozordagi odatiy narxi')}: <b>${money(p.retail.price)}</b> / ${p.unit}. ${t('Ulgurji yoki guruh bo‘lib olsangiz, har bir birlik shu narxdan arzon bo‘ladi; miqdor qancha ko‘p bo‘lsa, tejash shuncha katta.')}</p>
+const savingsBox = (p) => (p.retail ? html`<div class="card save-box"><b>${t('Bozor narxiga nisbatan tejash')}</b>
+  <p class="small">${t('Bozor narxi')} — ${t('bu mahsulotning do‘kon/bozordagi odatiy narxi')}: <b>${money(p.retail.price)}</b> / ${p.unit}. ${t('Ulgurji yoki guruh bo‘lib olsangiz, har bir birlik shu narxdan arzon bo‘ladi; miqdor qancha ko‘p bo‘lsa, tejash shuncha katta.')}</p>
   <p class="small muted">${t('Manba')}: ${p.retail.source}</p></div>` : '');
 const savingRows = (retail, unitPrice, q, unit) => { const s = saving(retail, unitPrice); return s ? html`
-  <div class="row between muted"><span>${t('Chakana narxda bo‘lardi')}</span><s>${money(retail.price * q)}</s></div>
+  <div class="row between muted"><span>${t('Bozor narxida bo‘lardi')}</span><s>${money(retail.price * q)}</s></div>
   <div class="row between save-line"><span>${t('Sizning tejashingiz')} (${num(q)} ${unit})</span><b>${money(s.amt * q)} (−${s.pct}%)</b></div>` : ''; };
 const tierPrice = (tiers, qty) => { let p = tiers[0]; for (const x of tiers) if (qty >= x.minQty) p = x; return p; };
 
@@ -86,21 +92,16 @@ route('/', async () => {
       <h1>${t('Bozordan')} <mark>${t('arzon')}</mark>,<br>${t('omborxona narxida')}</h1>
       <p>${t('Guruch, un, yog‘, choy va boshqa kundalik mahsulotlarni ulgurji narxda oling. Boshqalar bilan guruh bo‘lib xarid qilsangiz, narx yana tushadi.')}</p>
       <div class="row wrap"><a class="btn sun big" href="/products" data-link>${t('Katalogga o‘tish')} →</a><a class="btn big" href="/groups" data-link>${t('Guruhga qo‘shilish')}</a></div>
-      <ul class="proof"><li>${t('Miqdor oshsa, narx tushadi')}</li><li>${t('Chakana narx bilan solishtirish')}</li><li>${t('Yetkazish narxi oldindan ko‘rinadi')}</li></ul></div>
+      <ul class="proof"><li>${t('Miqdor oshsa, narx tushadi')}</li><li>${t('Bozor narxi bilan solishtirish')}</li><li>${t('Yetkazish narxi oldindan ko‘rinadi')}</li></ul></div>
       <div class="collage">${frames.map((p, i) => html`<div class="frame f${i + 1}"><img src="${p.imageUrl}" alt="${p.title}"></div>`)}
         ${top ? html`<div class="sticker"><div><b>−<span data-count="${saving(top.retail, top.bestPrice).pct}" style="display:inline;font-size:inherit;margin:0;text-transform:none;letter-spacing:inherit">${saving(top.retail, top.bestPrice).pct}</span>%</b><span>${t('gacha arzon')}</span></div></div>
-        <div class="deal">${top.title}<b>${money(top.bestPrice)}<small> / ${top.unit}</small></b><s>${t('Chakana')}: ${money(top.retail.price)}</s></div>` : ''}</div></section>
+        <div class="deal">${top.title}<b>${money(top.bestPrice)}<small> / ${top.unit}</small></b><s>${t('Bozor narxi')}: ${money(top.retail.price)}</s></div>` : ''}</div></section>
     <div class="ticker bleed" aria-hidden="true"><div>${tickerItems}</div></div>
     <div class="cats">${cats.map((c) => { const p = catImg(c); return html`<a class="cat" href="/products?category=${c.id}" data-link>${p ? html`<img src="${p.imageUrl}" alt="" loading="lazy">` : ''}<span>${c.name}</span></a>`; })}</div>
-    <div class="section-head"><div><h2>${t('Eng katta chegirmalar')}</h2><p>${t('Chakana narxdan eng arzon mahsulotlar')}</p></div><a href="/products?sort=saving" data-link>${t('Hammasi')} →</a></div>
+    <div class="section-head"><div><h2>${t('Eng katta chegirmalar')}</h2><p>${t('Bozor narxidan eng arzon mahsulotlar')}</p></div><a href="/products?sort=saving" data-link>${t('Hammasi')} →</a></div>
     <div class="grid">${p1.items.slice(0, 10).map(productCard)}</div>
     ${groups.length ? html`<section class="band bleed"><div class="section-head"><div><h2>${t('Birgalikda olamiz, arzonroq olamiz')}</h2><p>${t('Limit to‘lguncha qo‘shiling. Yakuniy narx hamma uchun bir xil.')}</p></div><a href="/groups" data-link>${t('Barcha guruhlar')} →</a></div>
       <div class="grid">${groups.slice(0, 6).map(groupCard)}</div></section>` : ''}
-    <section class="how"><div class="section-head"><div><h2>${t('Qanday ishlaydi?')}</h2></div></div><ol>
-      <li><b>${t('Tanlang')}</b>${t('Mahsulot va miqdorni belgilang.')}</li>
-      <li><b>${t('Yakka yoki guruh')}</b>${t('Minimal miqdorni o‘zingiz oling yoki guruhga qo‘shiling.')}</li>
-      <li><b>${t('To‘lang')}</b>${t('Yakuniy summa yetkazib berish bilan oldindan ko‘rinadi.')}</li>
-      <li><b>${t('Qabul qiling')}</b>${t('Yetkazib berishni Arzon.uz tashkil qiladi.')}</li></ol></section>
     <section class="cta bleed"><h2>${t('Birinchi buyurtmangizni bering')}</h2><p>${t('Katalogdan tanlang yoki ochiq guruhga qo‘shilib, narxni birgalikda tushiring.')}</p>
       <a class="btn big" href="/products" data-link>${t('Katalogga o‘tish')} →</a></section>`,
     mount: (el) => liveCountdowns(el),
@@ -295,7 +296,7 @@ route('/checkout', async ({ query }) => {
             <div class="row between"><span>${num(q.qty)} ${q.unit} × ${money(q.unitPrice)}</span><b>${money(q.subtotal)}</b></div>
             <div class="row between"><span>${t('Yetkazib berish')} (${q.zone.name})</span><b>${money(q.deliveryFee)}</b></div>
             <div class="row between total"><span>${t('Jami')}</span><b>${money(q.total)}</b></div>
-            ${q.savings ? html`<div class="ok small">${t('Chakana narxga nisbatan tejash')}: ${money(q.savings)}</div>` : ''}
+            ${q.savings ? html`<div class="ok small">${t('Bozor narxiga nisbatan tejash')}: ${money(q.savings)}</div>` : ''}
             ${q.priceFinalNote ? html`<p class="small muted">${q.priceFinalNote}</p>` : ''}`);
         } catch (e) {
           ctx.quote = null;

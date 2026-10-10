@@ -33,8 +33,8 @@ function readProduct(body, partial = false) {
   if (!partial || has('minIndividualQty')) out.min_individual_qty = int(body.minIndividualQty, 'Minimal buyurtma', { min: 1, max: 1e7 });
   if (!partial || has('stockQty')) out.stock_qty = int(body.stockQty, 'Zaxira', { min: 0, max: 1e9 });
   if (has('retailPrice')) {
-    out.retail_price = body.retailPrice === null || body.retailPrice === '' ? null : int(body.retailPrice, 'Chakana narx', { min: 1 });
-    out.retail_source = out.retail_price ? str(body.retailSource, 'Chakana narx manbasi', { min: 3, max: 200 }) : null;
+    out.retail_price = body.retailPrice === null || body.retailPrice === '' ? null : int(body.retailPrice, 'Bozor narxi', { min: 1 });
+    out.retail_source = out.retail_price ? str(body.retailSource, 'Bozor narxi manbasi', { min: 3, max: 200 }) : null;
     out.retail_verified = 0; // admin must (re)verify any retail price change
   }
   return out;

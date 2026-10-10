@@ -115,7 +115,7 @@ route('/profile', async () => {
   return {
     html: html`<h1>${t('Profil')}</h1>
     <div class="stats"><div class="stat"><b>${num(sum.orders)}</b><span>${t('Buyurtmalar')}</span></div><div class="stat"><b>${money(sum.saved)}</b><span>${t('Tejalgan summa')}</span></div></div>
-    <p class="small muted">${t('Tejalgan summa faqat tekshirilgan chakana narx mavjud mahsulotlar bo‘yicha hisoblanadi.')}</p>
+    <p class="small muted">${t('Tejalgan summa faqat tekshirilgan bozor narxi mavjud mahsulotlar bo‘yicha hisoblanadi.')}</p>
     <div class="two"><section class="card"><h3>${t('Ma’lumotlar')}</h3>
       <form id="me" class="form"><label>${t('Ism')}<input name="name" value="${u.name}" required minlength="2"></label><label>${t('Telefon')}<input value="${u.phone}" disabled></label>
         <label>Email<input name="email" type="email" value="${u.email || ''}"></label><button class="btn primary">${t('Saqlash')}</button></form>

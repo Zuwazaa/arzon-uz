@@ -24,7 +24,7 @@ function statsPage(head, s) {
   return html`${head}<p class="muted small">${t('Oxirgi')} ${s.days} ${t('kun')}. ${t('Pilot maqsadlari real ma’lumot to‘plangach belgilanadi.')}</p>
     <div class="stats">
       ${card(pct(s.groupCompletionRate), 'Group completion rate', `${s.groupsSuccessful} ${t('muvaffaqiyatli')} / ${s.groupsFailed} ${t('muvaffaqiyatsiz')}`)}
-      ${card(money(s.realSavings), 'Real savings', 'faqat tekshirilgan chakana narx bo‘yicha')}
+      ${card(money(s.realSavings), 'Real savings', 'faqat tekshirilgan bozor narxi bo‘yicha')}
       ${card(s.deliveryCostPerOrder === null ? '—' : money(s.deliveryCostPerOrder), 'Delivery cost per order')}
       ${card(pct(s.onTimeRate), 'On-time delivery rate')}
       ${card(pct(s.repeatPurchaseRate), 'Repeat purchase rate')}
@@ -117,10 +117,10 @@ async function moderationPage(head) {
       ${s.status !== 'active' ? html`<button class="btn sm primary" data-sel="${s.id}:active">${t('Tasdiqlash')}</button>` : ''}${s.status !== 'blocked' ? html`<button class="btn sm bad" data-sel="${s.id}:blocked">${t('Bloklash')}</button>` : ''}</div></div>`)}
     <h2>${t('Mahsulotlar')}</h2>${prods.map((p) => html`<div class="card"><div class="row between"><b>${p.title}</b><span class="badge ${p.status === 'active' ? 'ok' : p.status === 'pending' ? 'warn' : 'bad'}">${p.status}</span></div>
       <div class="small muted">${p.sellerName} · ${p.tiers.map((x) => `${num(x.minQty)}+ → ${num(x.unitPrice)}`).join(' | ')} · ${t('zaxira')} ${num(p.stockQty)}</div>
-      ${p.retailDraft.price ? html`<div class="small">${t('Chakana')}: <b>${money(p.retailDraft.price)}</b> — ${p.retailDraft.source} · ${p.retailDraft.verified ? html`<span class="ok">${t('tasdiqlangan')}</span>` : html`<span class="warn-text">${t('tekshirilmagan')}</span>`}</div>` : ''}
+      ${p.retailDraft.price ? html`<div class="small">${t('Bozor narxi')}: <b>${money(p.retailDraft.price)}</b> — ${p.retailDraft.source} · ${p.retailDraft.verified ? html`<span class="ok">${t('tasdiqlangan')}</span>` : html`<span class="warn-text">${t('tekshirilmagan')}</span>`}</div>` : ''}
       <div class="row gap wrap">${p.status !== 'active' ? html`<button class="btn sm primary" data-pr="${p.id}:status:active">${t('Faollashtirish')}</button>` : ''}${p.status === 'pending' ? html`<button class="btn sm bad" data-pr="${p.id}:status:rejected">${t('Rad etish')}</button>` : ''}
         ${p.status === 'active' ? html`<button class="btn sm" data-pr="${p.id}:status:archived">${t('Arxivlash')}</button>` : ''}
-        ${p.retailDraft.price ? html`<button class="btn sm" data-pr="${p.id}:retailVerified:${p.retailDraft.verified ? 0 : 1}">${p.retailDraft.verified ? t('Chakana narxni bekor qilish') : t('Chakana narxni tasdiqlash')}</button>` : ''}</div></div>`)}`,
+        ${p.retailDraft.price ? html`<button class="btn sm" data-pr="${p.id}:retailVerified:${p.retailDraft.verified ? 0 : 1}">${p.retailDraft.verified ? t('Bozor narxini bekor qilish') : t('Bozor narxini tasdiqlash')}</button>` : ''}</div></div>`)}`,
     mount: (el) => {
       act(el, '[data-sel]', (b) => { const [id, st] = b.dataset.sel.split(':'); return api('PATCH', '/admin/sellers/' + id, { status: st }); });
       act(el, '[data-pr]', (b) => { const [id, k, v] = b.dataset.pr.split(':'); return api('PATCH', '/admin/products/' + id, { [k]: k === 'retailVerified' ? v === '1' : v }); });

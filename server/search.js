@@ -15,7 +15,7 @@ const SYN = [
   'shakar qand saxar sugar', 'guruch ris', 'un muka', 'yog moy maslo', 'choy chay', 'tuz sol', 'kofe kofye', 'daftar tetrad', 'ruchka', 'qalam karandash',
   'konfet konfeta shirinlik', 'pechenye pechene pechenie', 'non lepyoshka lepeshka patir', 'tort pirog', 'sut moloko', 'asol asal med', 'yongoq gres orex',
   'mayiz izyum', 'orik kuraga', 'nuxat', 'makaron pasta', 'grechka grecha', 'sovun mylo', 'sharlar sharik shar', 'bitiruv vypusk', 'toy tuy svadba', 'ryukzak ryukzagi sumka rukzak',
-  'konserva konservalar', 'stakan stakanlar', 'salfetka salfetkalar',
+  'konserva konservalar', 'suv su voda water', 'sharbat sok juice', 'ichimlik ichimliklar napitok', 'limonad gazlangan gazirovka', 'stakan stakanlar', 'salfetka salfetkalar',
 ].map((g) => g.split(' '));
 const synOf = new Map();
 for (const g of SYN) for (const w of g) synOf.set(w, g);

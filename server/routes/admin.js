@@ -135,7 +135,7 @@ r.patch('/products/:id', (req, res) => {
   const set = {};
   if (req.body.status !== undefined) set.status = oneOf(req.body.status, ['active', 'rejected', 'pending', 'archived'], 'Holat');
   if (req.body.retailVerified !== undefined) {
-    if (req.body.retailVerified && !p.retail_price) throw bad('Chakana narx kiritilmagan');
+    if (req.body.retailVerified && !p.retail_price) throw bad('Bozor narxi kiritilmagan');
     set.retail_verified = req.body.retailVerified ? 1 : 0;
   }
   const cols = Object.keys(set);

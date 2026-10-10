@@ -21,7 +21,7 @@ async function products(head) {
   const [list, cats] = await Promise.all([api('GET', '/seller/products'), api('GET', '/categories')]);
   const row = (p) => html`<div class="card"><div class="row between"><b>${p.title}</b>${badge(PSTATUS, p.status)}</div>
     <div class="small muted">${t('Zaxira')}: ${num(p.stockQty)} ${p.unit} · ${t('Min.')} ${num(p.minIndividualQty)} · ${p.tiers.map((x) => `${num(x.minQty)}+ → ${num(x.unitPrice)}`).join(' | ')}</div>
-    ${p.retailDraft?.price ? html`<div class="small muted">${t('Chakana')}: ${money(p.retailDraft.price)} (${p.retailDraft.verified ? t('tasdiqlangan') : t('tasdiqlanmagan — tejash ko‘rsatilmaydi')})</div>` : ''}
+    ${p.retailDraft?.price ? html`<div class="small muted">${t('Bozor narxi')}: ${money(p.retailDraft.price)} (${p.retailDraft.verified ? t('tasdiqlangan') : t('tasdiqlanmagan — tejash ko‘rsatilmaydi')})</div>` : ''}
     <div class="row gap"><button class="btn sm" data-edit="${p.id}">${t('Tahrirlash')}</button>${p.status === 'archived' ? html`<button class="btn sm" data-st="${p.id}:pending">${t('Qayta yuborish')}</button>` : html`<button class="btn sm" data-st="${p.id}:archived">${t('Arxivlash')}</button>`}</div></div>`;
   return {
     html: html`${head}<div class="row between"><h2>${t('Mahsulotlarim')}</h2><button class="btn primary" id="new">+ ${t('Yangi mahsulot')}</button></div>
@@ -41,9 +41,9 @@ async function products(head) {
           <div class="cols"><label>${t('Minimal shaxsiy buyurtma')}<input name="minIndividualQty" type="number" min="1" value="${p?.minIndividualQty || ''}" required></label>
             <label>${t('Zaxira')}<input name="stockQty" type="number" min="0" value="${p?.stockQty ?? ''}" required></label></div>
           <fieldset><legend>${t('Narx bosqichlari (miqdor oshgani sari narx pasayadi)')}</legend><div id="tiers">${tiers.map(tierRow)}</div><button type="button" class="btn sm" id="addtier">+ ${t('Bosqich')}</button></fieldset>
-          <div class="cols"><label>${t('Chakana taqqoslash narxi (ixtiyoriy)')}<input name="retailPrice" type="number" min="1" value="${p?.retailDraft?.price || ''}"></label>
+          <div class="cols"><label>${t('Bozor narxi, taqqoslash uchun (ixtiyoriy)')}<input name="retailPrice" type="number" min="1" value="${p?.retailDraft?.price || ''}"></label>
             <label>${t('Narx manbasi (dalil)')}<input name="retailSource" value="${p?.retailDraft?.source || ''}" maxlength="200" placeholder="${t('masalan: Korzinka, 2026-10')}"></label></div>
-          <p class="small muted">${t('Chakana narx administrator tomonidan tekshirilmaguncha “tejash” ko‘rsatilmaydi. Nom/tavsif/narx o‘zgarsa mahsulot qayta moderatsiyaga yuboriladi.')}</p>
+          <p class="small muted">${t('Bozor narxi administrator tomonidan tekshirilmaguncha “tejash” ko‘rsatilmaydi. Nom/tavsif/narx o‘zgarsa mahsulot qayta moderatsiyaga yuboriladi.')}</p>
           <div class="row gap"><button class="btn primary" value="save">${t('Saqlash')}</button><button class="btn" value="cancel" formnovalidate>${t('Yopish')}</button></div>`);
         wire(p);
         dlg.showModal();
