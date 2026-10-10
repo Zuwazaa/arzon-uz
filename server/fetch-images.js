@@ -8,9 +8,9 @@ fs.mkdirSync(dir, { recursive: true });
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let ok = 0,
-  skipped = 0,
-  failed = [];
+const failed = [];
+let ok = 0;
+let skipped = 0;
 
 for (const [key, p] of Object.entries(WIKI)) {
   const out = path.join(dir, `${key}.jpg`);

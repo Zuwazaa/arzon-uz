@@ -1,6 +1,5 @@
 import {
   html,
-  raw,
   t,
   money,
   num,
@@ -8,7 +7,6 @@ import {
   remaining,
   badge,
   ORDER_STATUS,
-  GROUP_STATUS,
   PAY_STATUS,
   REFUND_STATUS,
   DELIVERY_STATUS,
@@ -105,7 +103,7 @@ route(
 route('/profile/orders/:id', async ({ params }) => {
   const id = params[0];
   const load = () => api('GET', '/orders/' + id);
-  const o = await load();
+  const firstLoad = await load();
   const view = (o) => {
     const it = o.items[0];
     return html`
@@ -139,10 +137,10 @@ route('/profile/orders/:id', async ({ params }) => {
       ${o.canCancel && o.status !== 'pending_payment' ? html`<button class="btn" id="cancel">${t('Buyurtmani bekor qilish')}</button>` : ''}</section>`;
   };
   return {
-    html: html`<div id="order">${view(o)}</div>`,
+    html: html`<div id="order">${view(firstLoad)}</div>`,
     mount: (el) => {
       const root = el.querySelector('#order');
-      let cur = o;
+      let cur = firstLoad;
       const bind = () => {
         const pay = root.querySelector('#pay');
         if (pay)

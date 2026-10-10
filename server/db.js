@@ -2,10 +2,10 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const file = process.env.DB_FILE || path.join(process.cwd(), 'data', 'optom.db');
-if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
+export const dbFile = process.env.DB_FILE || path.join(process.cwd(), 'data', 'optom.db');
+if (dbFile !== ':memory:') fs.mkdirSync(path.dirname(dbFile), { recursive: true });
 
-export const db = new DatabaseSync(file);
+export const db = new DatabaseSync(dbFile);
 db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
 
 let depth = 0;

@@ -49,7 +49,7 @@ export function recountGroup(id) {
 /** Re-evaluates an open group: success / threshold / failure. Idempotent. */
 export function evalGroup(id) {
   return tx(() => {
-    let g = db.prepare('SELECT * FROM group_buys WHERE id=?').get(id);
+    const g = db.prepare('SELECT * FROM group_buys WHERE id=?').get(id);
     if (!g || !['open', 'threshold_met'].includes(g.status)) return g;
     const { c, p } = recountGroup(id);
     const now = nowIso();
@@ -188,7 +188,6 @@ export function quote({ type, productId, groupId, qty, zoneId }) {
   qty = int(qty, 'Miqdor', { min: 1 });
   let product,
     group = null,
-    unitPrice,
     tier,
     tiers;
   if (type === 'individual') {
@@ -231,7 +230,7 @@ export function quote({ type, productId, groupId, qty, zoneId }) {
     throw unprocessable(`Zaxirada faqat ${product.stock_qty} ${product.unit} bor`, 'insufficient_stock', {
       availableQty: product.stock_qty,
     });
-  unitPrice = tier.unit_price;
+  const unitPrice = tier.unit_price;
   const subtotal = unitPrice * qty;
   return {
     type,

@@ -13,7 +13,7 @@
     "seed": "node server/seed.js --reset",
     "test": "node --test test/*.test.js",
     "images": "node server/fetch-images.js",
-    "catalog:extra": "node server/catalog-extra.js"
+    "catalog:extra": "node server/catalog.js"
   },
   "dependencies": {
     "express": "^5.1.0",

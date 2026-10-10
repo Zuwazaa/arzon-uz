@@ -133,15 +133,16 @@ r.get('/products', (req, res) => {
     ({ scores, didYouMean } = rankProducts(rows, q));
     rows = rows.filter((p) => scores.has(p.id));
   }
-  let list = rows.map((p) => ({ ...productDto(p), relevance: scores ? scores.get(p.id) : 0 }));
+  let list = rows.map((p) => productDto(p));
   if (req.query.group === '1') list = list.filter((p) => p.openGroupId);
+  const relevanceOf = (p) => scores?.get(p.id) ?? 0;
   const sort = req.query.sort || (q ? 'relevance' : 'new');
   const sorters = {
     new: (a, b) => b.id - a.id,
     price_asc: (a, b) => a.entryPrice - b.entryPrice,
     price_desc: (a, b) => b.entryPrice - a.entryPrice,
     saving: (a, b) => (b.savingsPct ?? -1) - (a.savingsPct ?? -1),
-    relevance: (a, b) => b.relevance - a.relevance || b.id - a.id,
+    relevance: (a, b) => relevanceOf(b) - relevanceOf(a) || b.id - a.id,
   };
   list.sort(sorters[sort] || sorters.new);
   const page = int(req.query.page ?? 1, 'Sahifa', { min: 1, max: 1000 });
@@ -152,7 +153,7 @@ r.get('/products', (req, res) => {
     perPage: per,
     q,
     didYouMean,
-    items: list.slice((page - 1) * per, page * per).map(({ relevance, ...p }) => p),
+    items: list.slice((page - 1) * per, page * per),
   });
 });
 
