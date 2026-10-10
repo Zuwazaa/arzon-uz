@@ -68,11 +68,9 @@ r.post('/auth/register', authLimit, (req, res) => {
   audit(id, 'user.register', 'user', id, { role });
   const s = createSession(id);
   setSessionCookie(res, s.token, s.maxAge);
-  res
-    .status(201)
-    .json({
-      user: db.prepare('SELECT id,name,phone,email,role,status,shop_name FROM users WHERE id=?').get(id),
-    });
+  res.status(201).json({
+    user: db.prepare('SELECT id,name,phone,email,role,status,shop_name FROM users WHERE id=?').get(id),
+  });
 });
 
 r.post('/auth/login', authLimit, (req, res) => {
