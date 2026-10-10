@@ -34,7 +34,11 @@ class Client {
     if (sc) this.cookie = sc.split(';')[0];
     const text = await r.text();
     let json;
-    try { json = JSON.parse(text); } catch { json = text; }
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = text;
+    }
     return { status: r.status, body: json };
   }
   login = (phone) => this.call('POST', '/api/auth/login', { phone, password: 'demo12345' });
@@ -44,11 +48,19 @@ const pay = async (c, orderId, result = 'paid') => {
   const ref = intent.checkoutUrl.split('/').pop();
   const p = db.prepare('SELECT * FROM payments WHERE provider_reference=?').get(ref);
   const raw = JSON.stringify({ reference: ref, status: result, amount: p.amount });
-  return fetch(base + '/api/payments/webhook', { method: 'POST', body: raw, headers: { 'X-Signature': sign(Buffer.from(raw)) } });
+  return fetch(base + '/api/payments/webhook', {
+    method: 'POST',
+    body: raw,
+    headers: { 'X-Signature': sign(Buffer.from(raw)) },
+  });
 };
 async function newBuyer(phone) {
   const c = new Client();
-  const r = await c.call('POST', '/api/auth/register', { name: 'Test ' + phone, phone, password: 'password123' });
+  const r = await c.call('POST', '/api/auth/register', {
+    name: 'Test ' + phone,
+    phone,
+    password: 'password123',
+  });
   assert.equal(r.status, 201);
   await c.call('POST', '/api/me/addresses', { label: 'Uy', zoneId: 1, street: 'Test kocha 1' });
   const a = (await c.call('GET', '/api/me/addresses')).body[0];
@@ -57,18 +69,34 @@ async function newBuyer(phone) {
 
 test('individual order: min qty, snapshot, webhook-only payment', async () => {
   const { c, addressId } = await newBuyer('+998901111111');
-  const prod = (await c.call('GET', '/api/products')).body.items.find((p) => p.title.startsWith('Guruch'));
+  const prod = (await c.call('GET', '/api/products?per=100')).body.items.find((p) =>
+    p.title.startsWith('Guruch'),
+  );
   let r = await c.call('POST', '/api/orders/individual', { productId: prod.id, qty: 5, addressId });
   assert.equal(r.status, 422);
   assert.equal(r.body.error.code, 'below_min');
-  r = await c.call('POST', '/api/orders/individual', { productId: prod.id, qty: 100, addressId }, { 'Idempotency-Key': 'k1' });
+  r = await c.call(
+    'POST',
+    '/api/orders/individual',
+    { productId: prod.id, qty: 100, addressId },
+    { 'Idempotency-Key': 'k1' },
+  );
   assert.equal(r.status, 201);
   assert.equal(r.body.order.items[0].unitPrice, 15500);
   assert.equal(r.body.order.total, 100 * 15500 + 15000);
-  const again = await c.call('POST', '/api/orders/individual', { productId: prod.id, qty: 100, addressId }, { 'Idempotency-Key': 'k1' });
+  const again = await c.call(
+    'POST',
+    '/api/orders/individual',
+    { productId: prod.id, qty: 100, addressId },
+    { 'Idempotency-Key': 'k1' },
+  );
   assert.equal(again.body.orderId, r.body.orderId);
   const id = r.body.orderId;
-  const bad = await fetch(base + '/api/payments/webhook', { method: 'POST', body: '{"reference":"x"}', headers: { 'X-Signature': 'nope' } });
+  const bad = await fetch(base + '/api/payments/webhook', {
+    method: 'POST',
+    body: '{"reference":"x"}',
+    headers: { 'X-Signature': 'nope' },
+  });
   assert.equal(bad.status, 401);
   assert.equal((await c.call('GET', `/api/orders/${id}`)).body.status, 'pending_payment');
   assert.equal((await pay(c, id)).status, 200);
@@ -87,7 +115,14 @@ test('stock cannot be oversold under concurrent orders', async () => {
   const prod = db.prepare("SELECT id FROM products WHERE title LIKE 'Kir yuvish%'").get();
   db.prepare('UPDATE products SET stock_qty=10 WHERE id=?').run(prod.id);
   const rs = await Promise.all(
-    [1, 2, 3, 4, 5].map((i) => c.call('POST', '/api/orders/individual', { productId: prod.id, qty: 4, addressId }, { 'Idempotency-Key': 'c' + i })),
+    [1, 2, 3, 4, 5].map((i) =>
+      c.call(
+        'POST',
+        '/api/orders/individual',
+        { productId: prod.id, qty: 4, addressId },
+        { 'Idempotency-Key': 'c' + i },
+      ),
+    ),
   );
   assert.equal(rs.filter((r) => r.status === 201).length, 2);
   assert.equal(db.prepare('SELECT stock_qty FROM products WHERE id=?').get(prod.id).stock_qty, 2);
@@ -98,7 +133,14 @@ test('group: concurrent joins respect limit; success adjusts price; seller gate'
   const buyers = [];
   for (let i = 0; i < 4; i++) buyers.push(await newBuyer('+99890444444' + i));
   const rs = await Promise.all(
-    buyers.map((b, i) => b.c.call('POST', `/api/groups/${g.id}/join`, { qty: 24, addressId: b.addressId }, { 'Idempotency-Key': 'g' + i })),
+    buyers.map((b, i) =>
+      b.c.call(
+        'POST',
+        `/api/groups/${g.id}/join`,
+        { qty: 24, addressId: b.addressId },
+        { 'Idempotency-Key': 'g' + i },
+      ),
+    ),
   );
   const ok = rs.filter((r) => r.status === 201);
   assert.equal(ok.length, 2);
@@ -106,7 +148,10 @@ test('group: concurrent joins respect limit; success adjusts price; seller gate'
   const idx = buyers.map((_, i) => i).filter((i) => rs[i].status === 201);
   const [a, b] = idx.map((i) => buyers[i]);
   const [oa, ob] = idx.map((i) => rs[i].body.orderId);
-  assert.equal((await a.c.call('POST', `/api/groups/${g.id}/join`, { qty: 6, addressId: a.addressId })).status, 409);
+  assert.equal(
+    (await a.c.call('POST', `/api/groups/${g.id}/join`, { qty: 6, addressId: a.addressId })).status,
+    409,
+  );
   await pay(a.c, oa);
   let o = (await a.c.call('GET', `/api/orders/${oa}`)).body;
   assert.equal(o.waitingForGroup, true);
@@ -128,11 +173,21 @@ test('group: concurrent joins respect limit; success adjusts price; seller gate'
   assert.equal(o.items[0].unitPrice, 63500);
   assert.equal(o.payment.refundStatus, 'refund_pending');
   assert.ok(o.payment.refundAmount > 0);
-  assert.equal((await seller.call('PATCH', `/api/seller/orders/${oa}/status`, { status: 'preparing' })).status, 200);
+  assert.equal(
+    (await seller.call('PATCH', `/api/seller/orders/${oa}/status`, { status: 'preparing' })).status,
+    200,
+  );
   const s1 = new Client();
   await s1.login('+998900000002');
-  assert.equal((await s1.call('PATCH', `/api/seller/orders/${oa}/status`, { status: 'ready_for_delivery' })).status, 404);
-  assert.equal((await buyers[0].c.call('POST', `/api/groups/${g.id}/join`, { qty: 6, addressId: buyers[0].addressId })).status, 422);
+  assert.equal(
+    (await s1.call('PATCH', `/api/seller/orders/${oa}/status`, { status: 'ready_for_delivery' })).status,
+    404,
+  );
+  assert.equal(
+    (await buyers[0].c.call('POST', `/api/groups/${g.id}/join`, { qty: 6, addressId: buyers[0].addressId }))
+      .status,
+    422,
+  );
 });
 
 test('group expiry -> failed, paid members refunded, reserved released', async () => {
@@ -144,14 +199,20 @@ test('group expiry -> failed, paid members refunded, reserved released', async (
   const j2 = await b2.c.call('POST', `/api/groups/${g.id}/join`, { qty: 10, addressId: b2.addressId });
   await pay(b1.c, j1.body.orderId);
   const stockBefore = db.prepare('SELECT stock_qty FROM products WHERE id=?').get(g.product_id).stock_qty;
-  db.prepare('UPDATE group_buys SET ends_at=? WHERE id=?').run(new Date(Date.now() - 1000).toISOString(), g.id);
+  db.prepare('UPDATE group_buys SET ends_at=? WHERE id=?').run(
+    new Date(Date.now() - 1000).toISOString(),
+    g.id,
+  );
   const gd = (await b1.c.call('GET', `/api/groups/${g.id}`)).body;
   assert.equal(gd.status, 'failed');
   const o1 = (await b1.c.call('GET', `/api/orders/${j1.body.orderId}`)).body;
   assert.equal(o1.status, 'cancelled');
   assert.equal(o1.payment.status, 'refund_pending');
   assert.equal((await b2.c.call('GET', `/api/orders/${j2.body.orderId}`)).body.status, 'cancelled');
-  assert.equal(db.prepare('SELECT stock_qty FROM products WHERE id=?').get(g.product_id).stock_qty, stockBefore + 20);
+  assert.equal(
+    db.prepare('SELECT stock_qty FROM products WHERE id=?').get(g.product_id).stock_qty,
+    stockBefore + 20,
+  );
   const admin = new Client();
   await admin.login('+998900000001');
   const rf = await admin.call('POST', `/api/admin/orders/${o1.id}/refund`, { action: 'complete' });
@@ -173,11 +234,30 @@ test('delivery lifecycle + role checks + stats', async () => {
   const admin = new Client();
   await admin.login('+998900000001');
   const d = db.prepare('SELECT id FROM deliveries WHERE order_id=?').get(id);
-  assert.equal((await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'delivered' })).status, 409);
+  assert.equal(
+    (await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'delivered' })).status,
+    409,
+  );
   const when = new Date(Date.now() + 3600e3).toISOString();
-  assert.equal((await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'scheduled', scheduledAt: when, courier: 'Ali' })).status, 200);
-  assert.equal((await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'out_for_delivery' })).status, 200);
-  assert.equal((await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'delivered', actualCost: 9000 })).status, 200);
+  assert.equal(
+    (
+      await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, {
+        status: 'scheduled',
+        scheduledAt: when,
+        courier: 'Ali',
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'out_for_delivery' })).status,
+    200,
+  );
+  assert.equal(
+    (await admin.call('PATCH', `/api/admin/deliveries/${d.id}`, { status: 'delivered', actualCost: 9000 }))
+      .status,
+    200,
+  );
   assert.equal((await c.call('GET', `/api/orders/${id}`)).body.status, 'delivered');
   const st = (await admin.call('GET', '/api/admin/stats')).body;
   assert.equal(st.deliveredOrders, 1);

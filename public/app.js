@@ -9,4 +9,3 @@ import './search.js';
 await loadUser().catch(() => {});
 updateChrome();
 renderRoute();
-

@@ -23,10 +23,14 @@ const providers = {
 
 export function createIntent(user, orderId) {
   return tx(() => {
-    const o = db.prepare('SELECT * FROM orders WHERE id=? AND user_id=?').get(int(orderId, 'Buyurtma', { min: 1 }), user.id);
+    const o = db
+      .prepare('SELECT * FROM orders WHERE id=? AND user_id=?')
+      .get(int(orderId, 'Buyurtma', { min: 1 }), user.id);
     if (!o) throw notFound('Buyurtma topilmadi');
-    if (o.status !== 'pending_payment') throw conflict('Bu buyurtma uchun to‘lov talab qilinmaydi', 'not_payable');
-    if (o.hold_expires_at < nowIso()) throw conflict('To‘lov muddati tugagan. Buyurtmani qaytadan rasmiylashtiring', 'hold_expired');
+    if (o.status !== 'pending_payment')
+      throw conflict('Bu buyurtma uchun to‘lov talab qilinmaydi', 'not_payable');
+    if (o.hold_expires_at < nowIso())
+      throw conflict('To‘lov muddati tugagan. Buyurtmani qaytadan rasmiylashtiring', 'hold_expired');
     const provider = providers[PROVIDER];
     if (!provider) throw bad('To‘lov provayderi sozlanmagan', 'provider_missing');
     let p = db.prepare("SELECT * FROM payments WHERE order_id=? AND status='pending'").get(o.id);
@@ -34,7 +38,9 @@ export function createIntent(user, orderId) {
       const ref = crypto.randomBytes(16).toString('hex');
       const now = nowIso();
       const r = db
-        .prepare('INSERT INTO payments(order_id,provider,provider_reference,amount,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)')
+        .prepare(
+          'INSERT INTO payments(order_id,provider,provider_reference,amount,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',
+        )
         .run(o.id, PROVIDER, ref, o.total, 'pending', now, now);
       p = db.prepare('SELECT * FROM payments WHERE id=?').get(r.lastInsertRowid);
       audit(user.id, 'payment.intent', 'payment', p.id, { orderId: o.id, amount: o.total });
@@ -47,7 +53,11 @@ export function createIntent(user, orderId) {
 export function handleWebhook(raw, sig) {
   if (!verifySignature(raw, sig)) throw new ApiError(401, 'bad_signature', 'Imzo noto‘g‘ri');
   let evt;
-  try { evt = JSON.parse(raw.toString()); } catch { throw bad('Webhook JSON noto‘g‘ri'); }
+  try {
+    evt = JSON.parse(raw.toString());
+  } catch {
+    throw bad('Webhook JSON noto‘g‘ri');
+  }
   if (!['paid', 'failed'].includes(evt.status)) throw bad('Noma’lum holat');
   return tx(() => {
     const p = db.prepare('SELECT * FROM payments WHERE provider_reference=?').get(String(evt.reference));
@@ -65,9 +75,14 @@ export function handleWebhook(raw, sig) {
     audit(null, 'payment.paid', 'payment', p.id, { orderId: order.id, amount: p.amount });
     if (order.status === 'pending_payment') {
       setOrderStatus(order, 'confirmed', null, 'To‘lov tasdiqlandi');
-      db.prepare("UPDATE group_members SET status='paid' WHERE order_id=? AND status='reserved'").run(order.id);
+      db.prepare("UPDATE group_members SET status='paid' WHERE order_id=? AND status='reserved'").run(
+        order.id,
+      );
       db.prepare('UPDATE orders SET hold_expires_at=NULL WHERE id=?').run(order.id);
-      if (order.group_id) { recountGroup(order.group_id); evalGroup(order.group_id); }
+      if (order.group_id) {
+        recountGroup(order.group_id);
+        evalGroup(order.group_id);
+      }
     } else {
       // paid after the hold expired / order cancelled -> money must go back
       db.prepare(
@@ -84,28 +99,40 @@ export function adminRefund(actor, orderId, { action, amount, note }) {
   return tx(() => {
     const order = db.prepare('SELECT * FROM orders WHERE id=?').get(int(orderId, 'Buyurtma', { min: 1 }));
     if (!order) throw notFound('Buyurtma topilmadi');
-    const pay = db.prepare("SELECT * FROM payments WHERE order_id=? AND status IN('paid','refund_pending','refunded') ORDER BY id DESC").get(order.id);
+    const pay = db
+      .prepare(
+        "SELECT * FROM payments WHERE order_id=? AND status IN('paid','refund_pending','refunded') ORDER BY id DESC",
+      )
+      .get(order.id);
     if (!pay) throw conflict('Bu buyurtma bo‘yicha to‘langan to‘lov yo‘q', 'no_paid_payment');
     const now = nowIso();
     if (action === 'start') {
       if (pay.refund_status === 'refunded') throw conflict('Refund allaqachon bajarilgan');
-      const amt = amount === undefined ? pay.amount : int(amount, 'Refund summasi', { min: 1, max: pay.amount });
-      if (['pending_payment', 'confirmed', 'preparing', 'ready_for_delivery'].includes(order.status) && amt === pay.amount) {
+      const amt =
+        amount === undefined ? pay.amount : int(amount, 'Refund summasi', { min: 1, max: pay.amount });
+      if (
+        ['pending_payment', 'confirmed', 'preparing', 'ready_for_delivery'].includes(order.status) &&
+        amt === pay.amount
+      ) {
         cancelOrder(order, actor.id, note || 'Admin tomonidan refund');
       } else if (order.status === 'out_for_delivery' && amt === pay.amount) {
         setOrderStatus(order, 'failed', actor.id, note || 'Yetkazib berilmadi, refund');
-        db.prepare(`UPDATE payments SET status='refund_pending', refund_status='refund_pending', refund_amount=?, refund_note=?, updated_at=? WHERE id=?`)
-          .run(amt, note ?? null, now, pay.id);
+        db.prepare(
+          `UPDATE payments SET status='refund_pending', refund_status='refund_pending', refund_amount=?, refund_note=?, updated_at=? WHERE id=?`,
+        ).run(amt, note ?? null, now, pay.id);
       } else {
         const full = amt === pay.amount;
-        db.prepare(`UPDATE payments SET ${full ? "status='refund_pending'," : ''} refund_status='refund_pending', refund_amount=?, refund_note=?, updated_at=? WHERE id=?`)
-          .run(amt, note ?? null, now, pay.id);
+        db.prepare(
+          `UPDATE payments SET ${full ? "status='refund_pending'," : ''} refund_status='refund_pending', refund_amount=?, refund_note=?, updated_at=? WHERE id=?`,
+        ).run(amt, note ?? null, now, pay.id);
       }
       audit(actor.id, 'refund.start', 'payment', pay.id, { amount: amt, note });
     } else if (action === 'complete') {
       if (pay.refund_status !== 'refund_pending') throw conflict('Kutilayotgan refund yo‘q');
       const full = pay.refund_amount === pay.amount;
-      db.prepare(`UPDATE payments SET ${full ? "status='refunded'," : ''} refund_status='refunded', updated_at=? WHERE id=?`).run(now, pay.id);
+      db.prepare(
+        `UPDATE payments SET ${full ? "status='refunded'," : ''} refund_status='refunded', updated_at=? WHERE id=?`,
+      ).run(now, pay.id);
       audit(actor.id, 'refund.complete', 'payment', pay.id, { amount: pay.refund_amount });
     } else throw bad('action: start yoki complete bo‘lishi kerak');
     return db.prepare('SELECT * FROM payments WHERE id=?').get(pay.id);

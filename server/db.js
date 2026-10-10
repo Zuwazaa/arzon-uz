@@ -93,7 +93,11 @@ CREATE TABLE IF NOT EXISTS audit_log(
   id INTEGER PRIMARY KEY, at TEXT NOT NULL, actor_id INTEGER, action TEXT NOT NULL, entity TEXT NOT NULL, entity_id INTEGER, detail TEXT);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status, category_id);
 `);
-try { db.exec('ALTER TABLE products ADD COLUMN image_url TEXT'); } catch { /* already applied */ }
+try {
+  db.exec('ALTER TABLE products ADD COLUMN image_url TEXT');
+} catch {
+  /* already applied */
+}
 db.exec(`
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);

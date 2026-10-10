@@ -2,7 +2,9 @@ import { db } from './db.js';
 import { bad } from './util.js';
 
 export const tiersOf = (productId) =>
-  db.prepare('SELECT id, min_qty, unit_price FROM price_tiers WHERE product_id=? ORDER BY min_qty').all(productId);
+  db
+    .prepare('SELECT id, min_qty, unit_price FROM price_tiers WHERE product_id=? ORDER BY min_qty')
+    .all(productId);
 
 /** Tier that applies at qty. Below the first tier the entry (first) tier price applies. */
 export function tierFor(tiers, qty) {
@@ -23,7 +25,8 @@ export function validateTiers(tiers, minIndividualQty) {
   out.sort((a, b) => a.min_qty - b.min_qty);
   for (let i = 1; i < out.length; i++) {
     if (out[i].min_qty === out[i - 1].min_qty) throw bad('Bosqichlar minimal miqdori takrorlanmasligi kerak');
-    if (out[i].unit_price >= out[i - 1].unit_price) throw bad('Miqdor oshgani sari birlik narxi kamayishi kerak');
+    if (out[i].unit_price >= out[i - 1].unit_price)
+      throw bad('Miqdor oshgani sari birlik narxi kamayishi kerak');
   }
   if (out[0].min_qty > minIndividualQty)
     throw bad('Birinchi bosqich minimal shaxsiy buyurtma miqdorini qamrab olishi kerak');

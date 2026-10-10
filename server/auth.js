@@ -21,7 +21,11 @@ const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 export function createSession(userId) {
   const token = crypto.randomBytes(32).toString('base64url');
   const expires = new Date(Date.now() + SESSION_DAYS * 864e5).toISOString();
-  db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').run(sha(token), userId, expires);
+  db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').run(
+    sha(token),
+    userId,
+    expires,
+  );
   return { token, maxAge: SESSION_DAYS * 86400 };
 }
 export function destroySession(token) {
@@ -62,12 +66,14 @@ export function requireAuth(req, _res, next) {
   if (!req.user) return next(new ApiError(401, 'unauthorized', 'Avval tizimga kiring'));
   next();
 }
-export const requireRole = (...roles) => (req, res, next) =>
-  requireAuth(req, res, (err) => {
-    if (err) return next(err);
-    if (!roles.includes(req.user.role)) return next(forbidden());
-    next();
-  });
+export const requireRole =
+  (...roles) =>
+  (req, res, next) =>
+    requireAuth(req, res, (err) => {
+      if (err) return next(err);
+      if (!roles.includes(req.user.role)) return next(forbidden());
+      next();
+    });
 
 // --- tiny in-memory rate limiter -------------------------------------------------
 const buckets = new Map();
@@ -76,7 +82,8 @@ export const rateLimit = (name, max, windowMs) => (req, _res, next) => {
   const key = `${name}:${req.user?.id ?? req.ip}`;
   const now = Date.now();
   const arr = (buckets.get(key) || []).filter((t) => now - t < windowMs);
-  if (arr.length >= max * MULT) return next(new ApiError(429, 'rate_limited', 'So‘rovlar juda ko‘p. Birozdan so‘ng urinib ko‘ring'));
+  if (arr.length >= max * MULT)
+    return next(new ApiError(429, 'rate_limited', 'So‘rovlar juda ko‘p. Birozdan so‘ng urinib ko‘ring'));
   arr.push(now);
   buckets.set(key, arr);
   next();

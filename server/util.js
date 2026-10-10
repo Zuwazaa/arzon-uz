@@ -16,7 +16,8 @@ export const conflict = (m, code = 'conflict') => new ApiError(409, code, m);
 
 export function int(v, name, { min = 0, max = 1_000_000_000_000 } = {}) {
   const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
-  if (typeof n !== 'number' || !Number.isInteger(n) || n < min || n > max) throw bad(`“${name}” qiymati noto‘g‘ri`);
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < min || n > max)
+    throw bad(`“${name}” qiymati noto‘g‘ri`);
   return n;
 }
 export function str(v, name, { min = 1, max = 300, optional = false } = {}) {

@@ -1,13 +1,39 @@
 import { Router } from 'express';
 import { db, tx, nowIso } from '../db.js';
 import {
-  hashPassword, verifyPassword, createSession, destroySession, setSessionCookie, clearSessionCookie,
-  requireAuth, rateLimit,
+  hashPassword,
+  verifyPassword,
+  createSession,
+  destroySession,
+  setSessionCookie,
+  clearSessionCookie,
+  requireAuth,
+  rateLimit,
 } from '../auth.js';
-import { ApiError, bad, conflict, int, str, notFound, normalizePhone, oneOf, audit, unprocessable } from '../util.js';
+import {
+  ApiError,
+  bad,
+  conflict,
+  int,
+  str,
+  notFound,
+  normalizePhone,
+  oneOf,
+  audit,
+  unprocessable,
+} from '../util.js';
 import { productDto, groupDto, PRODUCT_SELECT } from '../dto.js';
 import { rankProducts, matchCategories, POPULAR } from '../search.js';
-import { quote, quoteDto, createOrder, orderDto, requireOwnedOrder, canBuyerCancel, cancelOrder, sweep } from '../orders.js';
+import {
+  quote,
+  quoteDto,
+  createOrder,
+  orderDto,
+  requireOwnedOrder,
+  canBuyerCancel,
+  cancelOrder,
+  sweep,
+} from '../orders.js';
 import { createIntent } from '../payments.js';
 
 export const r = Router();
@@ -22,25 +48,52 @@ r.post('/auth/register', authLimit, (req, res) => {
   const email = str(req.body.email, 'Email', { optional: true, max: 120 });
   const role = oneOf(req.body.role || 'buyer', ['buyer', 'seller'], 'Rol');
   const shop = role === 'seller' ? str(req.body.shopName, 'Do‘kon nomi', { min: 2, max: 80 }) : null;
-  if (db.prepare('SELECT 1 FROM users WHERE phone=?').get(phone)) throw conflict('Bu telefon raqami ro‘yxatdan o‘tgan', 'phone_taken');
+  if (db.prepare('SELECT 1 FROM users WHERE phone=?').get(phone))
+    throw conflict('Bu telefon raqami ro‘yxatdan o‘tgan', 'phone_taken');
   const info = db
-    .prepare('INSERT INTO users(name,phone,email,password_hash,role,status,shop_name,created_at) VALUES(?,?,?,?,?,?,?,?)')
-    .run(name, phone, email, hashPassword(pw), role, role === 'seller' ? 'pending' : 'active', shop, nowIso());
+    .prepare(
+      'INSERT INTO users(name,phone,email,password_hash,role,status,shop_name,created_at) VALUES(?,?,?,?,?,?,?,?)',
+    )
+    .run(
+      name,
+      phone,
+      email,
+      hashPassword(pw),
+      role,
+      role === 'seller' ? 'pending' : 'active',
+      shop,
+      nowIso(),
+    );
   const id = Number(info.lastInsertRowid);
   audit(id, 'user.register', 'user', id, { role });
   const s = createSession(id);
   setSessionCookie(res, s.token, s.maxAge);
-  res.status(201).json({ user: db.prepare('SELECT id,name,phone,email,role,status,shop_name FROM users WHERE id=?').get(id) });
+  res
+    .status(201)
+    .json({
+      user: db.prepare('SELECT id,name,phone,email,role,status,shop_name FROM users WHERE id=?').get(id),
+    });
 });
 
 r.post('/auth/login', authLimit, (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const u = db.prepare('SELECT * FROM users WHERE phone=?').get(phone);
-  if (!u || !verifyPassword(String(req.body.password ?? ''), u.password_hash)) throw new ApiError(401, 'bad_credentials', 'Telefon yoki parol noto‘g‘ri');
+  if (!u || !verifyPassword(String(req.body.password ?? ''), u.password_hash))
+    throw new ApiError(401, 'bad_credentials', 'Telefon yoki parol noto‘g‘ri');
   if (u.status === 'blocked') throw new ApiError(403, 'blocked', 'Hisob bloklangan');
   const s = createSession(u.id);
   setSessionCookie(res, s.token, s.maxAge);
-  res.json({ user: { id: u.id, name: u.name, phone: u.phone, email: u.email, role: u.role, status: u.status, shop_name: u.shop_name } });
+  res.json({
+    user: {
+      id: u.id,
+      name: u.name,
+      phone: u.phone,
+      email: u.email,
+      role: u.role,
+      status: u.status,
+      shop_name: u.shop_name,
+    },
+  });
 });
 r.post('/auth/logout', (req, res) => {
   destroySession(req.sessionToken);
@@ -51,7 +104,11 @@ r.get('/auth/me', (req, res) => res.json({ user: req.user }));
 
 // ------------------------------------------------------------------ catalog
 r.get('/categories', (_req, res) => {
-  res.json(db.prepare('SELECT id,name,slug,emoji,parent_id parentId FROM categories WHERE active=1 ORDER BY id').all());
+  res.json(
+    db
+      .prepare('SELECT id,name,slug,emoji,parent_id parentId FROM categories WHERE active=1 ORDER BY id')
+      .all(),
+  );
 });
 r.get('/zones', (_req, res) => {
   res.json(db.prepare('SELECT id,name,fee FROM zones WHERE active=1 ORDER BY name').all());
@@ -60,7 +117,9 @@ r.get('/zones', (_req, res) => {
 r.get('/products', (req, res) => {
   const where = ["p.status='active'", "u.status='active'"];
   const args = [];
-  const q = String(req.query.q || '').trim().slice(0, 80);
+  const q = String(req.query.q || '')
+    .trim()
+    .slice(0, 80);
   if (req.query.category) {
     const cid = int(req.query.category, 'Kategoriya', { min: 1 });
     where.push('(p.category_id=? OR c.parent_id=?)');
@@ -68,7 +127,8 @@ r.get('/products', (req, res) => {
   }
   if (req.query.inStock === '1') where.push('p.stock_qty>=p.min_individual_qty');
   let rows = db.prepare(`${PRODUCT_SELECT} WHERE ${where.join(' AND ')}`).all(...args);
-  let scores = null, didYouMean = null;
+  let scores = null,
+    didYouMean = null;
   if (q) {
     ({ scores, didYouMean } = rankProducts(rows, q));
     rows = rows.filter((p) => scores.has(p.id));
@@ -86,25 +146,53 @@ r.get('/products', (req, res) => {
   list.sort(sorters[sort] || sorters.new);
   const page = int(req.query.page ?? 1, 'Sahifa', { min: 1, max: 1000 });
   const per = req.query.per ? int(req.query.per, 'Soni', { min: 1, max: 100 }) : 24;
-  res.json({ total: list.length, page, perPage: per, q, didYouMean, items: list.slice((page - 1) * per, page * per).map(({ relevance, ...p }) => p) });
+  res.json({
+    total: list.length,
+    page,
+    perPage: per,
+    q,
+    didYouMean,
+    items: list.slice((page - 1) * per, page * per).map(({ relevance, ...p }) => p),
+  });
 });
 
 r.get('/search/suggest', (req, res) => {
-  const q = String(req.query.q || '').trim().slice(0, 60);
+  const q = String(req.query.q || '')
+    .trim()
+    .slice(0, 60);
   const cats = db.prepare('SELECT id,name FROM categories WHERE active=1 ORDER BY id').all();
   if (!q) return res.json({ q, popular: POPULAR, products: [], categories: [] });
   const rows = db.prepare(`${PRODUCT_SELECT} WHERE p.status='active' AND u.status='active'`).all();
   const { scores, didYouMean } = rankProducts(rows, q);
-  const hit = rows.filter((p) => scores.has(p.id)).sort((a, b) => scores.get(b.id) - scores.get(a.id)).slice(0, 6);
+  const hit = rows
+    .filter((p) => scores.has(p.id))
+    .sort((a, b) => scores.get(b.id) - scores.get(a.id))
+    .slice(0, 6);
   res.json({
-    q, didYouMean, total: scores.size,
+    q,
+    didYouMean,
+    total: scores.size,
     categories: matchCategories(cats, q),
-    products: hit.map((p) => { const d = productDto(p); return { slug: d.slug, title: d.title, imageUrl: d.imageUrl, emoji: d.emoji, categoryName: d.categoryName, entryPrice: d.entryPrice, unit: d.unit, savingsPct: d.savingsPct }; }),
+    products: hit.map((p) => {
+      const d = productDto(p);
+      return {
+        slug: d.slug,
+        title: d.title,
+        imageUrl: d.imageUrl,
+        emoji: d.emoji,
+        categoryName: d.categoryName,
+        entryPrice: d.entryPrice,
+        unit: d.unit,
+        savingsPct: d.savingsPct,
+      };
+    }),
   });
 });
 
 r.get('/products/:slug', (req, res) => {
-  const p = db.prepare(`${PRODUCT_SELECT} WHERE p.slug=? AND p.status='active' AND u.status='active'`).get(String(req.params.slug));
+  const p = db
+    .prepare(`${PRODUCT_SELECT} WHERE p.slug=? AND p.status='active' AND u.status='active'`)
+    .get(String(req.params.slug));
   if (!p) throw notFound('Mahsulot topilmadi');
   const dto = productDto(p, { full: true });
   delete dto.retailDraft;
@@ -139,12 +227,16 @@ r.post('/checkout/quote', writeLimit, (req, res) => {
 r.post('/orders/individual', requireAuth, writeLimit, (req, res) => {
   const key = req.get('Idempotency-Key')?.slice(0, 100) || null;
   const out = createOrder(req.user, { ...req.body, type: 'individual' }, key);
-  res.status(out.replay ? 200 : 201).json({ ...out, order: orderDto(requireOwnedOrder(out.orderId, req.user)) });
+  res
+    .status(out.replay ? 200 : 201)
+    .json({ ...out, order: orderDto(requireOwnedOrder(out.orderId, req.user)) });
 });
 r.post('/groups/:id/join', requireAuth, writeLimit, (req, res) => {
   const key = req.get('Idempotency-Key')?.slice(0, 100) || null;
   const out = createOrder(req.user, { ...req.body, type: 'group', groupId: req.params.id }, key);
-  res.status(out.replay ? 200 : 201).json({ ...out, order: orderDto(requireOwnedOrder(out.orderId, req.user)) });
+  res
+    .status(out.replay ? 200 : 201)
+    .json({ ...out, order: orderDto(requireOwnedOrder(out.orderId, req.user)) });
 });
 
 r.get('/orders/me', requireAuth, (req, res) => {
@@ -159,7 +251,8 @@ r.get('/orders/:id', requireAuth, (req, res) => {
 r.post('/orders/:id/cancel', requireAuth, writeLimit, (req, res) => {
   const o = requireOwnedOrder(req.params.id, req.user);
   const group = o.group_id ? db.prepare('SELECT status FROM group_buys WHERE id=?').get(o.group_id) : null;
-  if (!canBuyerCancel(o, group)) throw conflict('Bu buyurtmani endi bekor qilib bo‘lmaydi', 'not_cancellable');
+  if (!canBuyerCancel(o, group))
+    throw conflict('Bu buyurtmani endi bekor qilib bo‘lmaydi', 'not_cancellable');
   cancelOrder(o, req.user.id, 'Xaridor bekor qildi');
   res.json(orderDto(requireOwnedOrder(o.id, req.user)));
 });
@@ -171,10 +264,14 @@ r.post('/payments/intent', requireAuth, writeLimit, (req, res) => {
 // ------------------------------------------------------------------ profile
 const meSummary = (userId) => {
   const rows = db
-    .prepare("SELECT items FROM orders WHERE user_id=? AND status IN('confirmed','preparing','ready_for_delivery','out_for_delivery','delivered')")
+    .prepare(
+      "SELECT items FROM orders WHERE user_id=? AND status IN('confirmed','preparing','ready_for_delivery','out_for_delivery','delivered')",
+    )
     .all(userId);
   let saved = 0;
-  for (const o of rows) for (const it of JSON.parse(o.items)) if (it.retailPrice > it.unitPrice) saved += (it.retailPrice - it.unitPrice) * it.qty;
+  for (const o of rows)
+    for (const it of JSON.parse(o.items))
+      if (it.retailPrice > it.unitPrice) saved += (it.retailPrice - it.unitPrice) * it.qty;
   return { orders: rows.length, saved };
 };
 r.get('/me/summary', requireAuth, (req, res) => res.json(meSummary(req.user.id)));
@@ -202,16 +299,22 @@ r.post('/me/addresses', requireAuth, writeLimit, (req, res) => {
   const label = str(req.body.label || 'Uy', 'Nomi', { max: 40 });
   const street = str(req.body.street, 'Manzil', { min: 3, max: 200 });
   const details = str(req.body.details, 'Izoh', { optional: true, max: 200 });
-  const zone = db.prepare('SELECT id FROM zones WHERE id=? AND active=1').get(int(req.body.zoneId, 'Hudud', { min: 1 }));
+  const zone = db
+    .prepare('SELECT id FROM zones WHERE id=? AND active=1')
+    .get(int(req.body.zoneId, 'Hudud', { min: 1 }));
   if (!zone) throw unprocessable('Bu hududga yetkazib berilmaydi');
   tx(() => {
     const first = !db.prepare('SELECT 1 FROM addresses WHERE user_id=? AND active=1').get(req.user.id);
-    db.prepare('INSERT INTO addresses(user_id,label,zone_id,street,details,is_default) VALUES(?,?,?,?,?,?)')
-      .run(req.user.id, label, zone.id, street, details, first ? 1 : 0);
+    db.prepare(
+      'INSERT INTO addresses(user_id,label,zone_id,street,details,is_default) VALUES(?,?,?,?,?,?)',
+    ).run(req.user.id, label, zone.id, street, details, first ? 1 : 0);
   });
   res.status(201).json(db.prepare(addrSelect).all(req.user.id));
 });
 r.delete('/me/addresses/:id', requireAuth, (req, res) => {
-  db.prepare('UPDATE addresses SET active=0 WHERE id=? AND user_id=?').run(int(req.params.id, 'Manzil', { min: 1 }), req.user.id);
+  db.prepare('UPDATE addresses SET active=0 WHERE id=? AND user_id=?').run(
+    int(req.params.id, 'Manzil', { min: 1 }),
+    req.user.id,
+  );
   res.json(db.prepare(addrSelect).all(req.user.id));
 });

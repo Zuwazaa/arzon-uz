@@ -17,10 +17,19 @@ export const SLOTS = ['morning', 'day', 'evening'];
 
 export function setOrderStatus(order, to, actorId, note) {
   if (!ORDER_FLOW[order.status]?.includes(to))
-    throw conflict(`Buyurtma holatini “${order.status}” dan “${to}” ga o‘tkazib bo‘lmaydi`, 'invalid_transition');
+    throw conflict(
+      `Buyurtma holatini “${order.status}” dan “${to}” ga o‘tkazib bo‘lmaydi`,
+      'invalid_transition',
+    );
   const at = nowIso();
   db.prepare('UPDATE orders SET status=?, updated_at=? WHERE id=?').run(to, at, order.id);
-  db.prepare('INSERT INTO order_events(order_id,status,note,actor_id,at) VALUES(?,?,?,?,?)').run(order.id, to, note ?? null, actorId ?? null, at);
+  db.prepare('INSERT INTO order_events(order_id,status,note,actor_id,at) VALUES(?,?,?,?,?)').run(
+    order.id,
+    to,
+    note ?? null,
+    actorId ?? null,
+    at,
+  );
   audit(actorId, 'order.status', 'order', order.id, { from: order.status, to, note });
   order.status = to;
 }
@@ -49,7 +58,10 @@ export function evalGroup(id) {
     } else if (now >= g.ends_at) {
       closeGroupUnsuccessful(g, 'failed', null);
     } else {
-      db.prepare('UPDATE group_buys SET status=? WHERE id=?').run(c >= g.target_qty ? 'threshold_met' : 'open', id);
+      db.prepare('UPDATE group_buys SET status=? WHERE id=?').run(
+        c >= g.target_qty ? 'threshold_met' : 'open',
+        id,
+      );
     }
     return db.prepare('SELECT * FROM group_buys WHERE id=?').get(id);
   });
@@ -67,14 +79,23 @@ function finalizeSuccess(g, committed) {
       items[0].paidUnitPrice = items[0].unitPrice;
       items[0].unitPrice = finalPrice;
       const subtotal = finalPrice * m.qty;
-      db.prepare('UPDATE orders SET items=?, subtotal=?, total=?, updated_at=? WHERE id=?')
-        .run(JSON.stringify(items), subtotal, subtotal + order.delivery_fee, nowIso(), order.id);
+      db.prepare('UPDATE orders SET items=?, subtotal=?, total=?, updated_at=? WHERE id=?').run(
+        JSON.stringify(items),
+        subtotal,
+        subtotal + order.delivery_fee,
+        nowIso(),
+        order.id,
+      );
       db.prepare(
         `UPDATE payments SET refund_status='refund_pending', refund_amount=refund_amount+?, refund_note=?, updated_at=?
          WHERE order_id=? AND status='paid'`,
       ).run(diff, 'Guruh yakuniy narxi bo‘yicha farq qaytariladi', nowIso(), order.id);
       db.prepare('UPDATE group_members SET unit_price_snapshot=? WHERE id=?').run(finalPrice, m.id);
-      audit(null, 'group.price_adjust', 'order', order.id, { from: m.unit_price_snapshot, to: finalPrice, refund: diff });
+      audit(null, 'group.price_adjust', 'order', order.id, {
+        from: m.unit_price_snapshot,
+        to: finalPrice,
+        refund: diff,
+      });
     }
   }
   db.prepare("UPDATE group_buys SET status='successful', closed_at=? WHERE id=?").run(nowIso(), g.id);
@@ -89,7 +110,10 @@ function closeGroupUnsuccessful(g, status, actorId) {
        WHERE m.group_id=? AND m.status IN('reserved','paid')`,
     )
     .all(g.id);
-  for (const o of orders) cancelOrder(o, actorId, `Guruh ${status === 'failed' ? 'muvaffaqiyatsiz tugadi' : 'bekor qilindi'}`, { skipGroupEval: true });
+  for (const o of orders)
+    cancelOrder(o, actorId, `Guruh ${status === 'failed' ? 'muvaffaqiyatsiz tugadi' : 'bekor qilindi'}`, {
+      skipGroupEval: true,
+    });
   recountGroup(g.id);
   audit(actorId, `group.${status}`, 'group', g.id, { orders: orders.length });
 }
@@ -109,9 +133,14 @@ export function cancelOrder(order, actorId, note, { skipGroupEval = false } = {}
     setOrderStatus(order, 'cancelled', actorId, note);
     for (const it of JSON.parse(order.items))
       db.prepare('UPDATE products SET stock_qty=stock_qty+? WHERE id=?').run(it.qty, it.productId);
-    db.prepare("UPDATE group_members SET status='cancelled' WHERE order_id=? AND status IN('reserved','paid')").run(order.id);
+    db.prepare(
+      "UPDATE group_members SET status='cancelled' WHERE order_id=? AND status IN('reserved','paid')",
+    ).run(order.id);
     const at = nowIso();
-    db.prepare("UPDATE payments SET status='failed', updated_at=? WHERE order_id=? AND status='pending'").run(at, order.id);
+    db.prepare("UPDATE payments SET status='failed', updated_at=? WHERE order_id=? AND status='pending'").run(
+      at,
+      order.id,
+    );
     db.prepare(
       `UPDATE payments SET status='refund_pending', refund_status='refund_pending', refund_amount=amount, refund_note=?, updated_at=?
        WHERE order_id=? AND status='paid'`,
@@ -127,9 +156,13 @@ export function cancelOrder(order, actorId, note, { skipGroupEval = false } = {}
 export function sweep() {
   tx(() => {
     const now = nowIso();
-    const stale = db.prepare("SELECT * FROM orders WHERE status='pending_payment' AND hold_expires_at<?").all(now);
+    const stale = db
+      .prepare("SELECT * FROM orders WHERE status='pending_payment' AND hold_expires_at<?")
+      .all(now);
     for (const o of stale) cancelOrder(o, null, 'To‘lov muddati tugadi');
-    const groups = db.prepare("SELECT id FROM group_buys WHERE status IN('open','threshold_met') AND ends_at<=?").all(now);
+    const groups = db
+      .prepare("SELECT id FROM group_buys WHERE status IN('open','threshold_met') AND ends_at<=?")
+      .all(now);
     for (const g of groups) evalGroup(g.id);
   });
 }
@@ -148,15 +181,25 @@ function activeProduct(id) {
 
 export function quote({ type, productId, groupId, qty, zoneId }) {
   oneOf(type, ['individual', 'group'], 'type');
-  const zone = db.prepare('SELECT * FROM zones WHERE id=? AND active=1').get(int(zoneId, 'Hudud', { min: 1 }));
+  const zone = db
+    .prepare('SELECT * FROM zones WHERE id=? AND active=1')
+    .get(int(zoneId, 'Hudud', { min: 1 }));
   if (!zone) throw unprocessable('Bu hududga yetkazib berilmaydi', 'zone_unavailable');
   qty = int(qty, 'Miqdor', { min: 1 });
-  let product, group = null, unitPrice, tier, tiers;
+  let product,
+    group = null,
+    unitPrice,
+    tier,
+    tiers;
   if (type === 'individual') {
     product = activeProduct(int(productId, 'Mahsulot', { min: 1 }));
     tiers = tiersOf(product.id);
     if (qty < product.min_individual_qty)
-      throw unprocessable(`Minimal buyurtma miqdori: ${product.min_individual_qty} ${product.unit}`, 'below_min', { minQty: product.min_individual_qty });
+      throw unprocessable(
+        `Minimal buyurtma miqdori: ${product.min_individual_qty} ${product.unit}`,
+        'below_min',
+        { minQty: product.min_individual_qty },
+      );
     tier = tierFor(tiers, qty);
   } else {
     group = db.prepare('SELECT * FROM group_buys WHERE id=?').get(int(groupId, 'Guruh', { min: 1 }));
@@ -166,21 +209,42 @@ export function quote({ type, productId, groupId, qty, zoneId }) {
     product = activeProduct(group.product_id);
     tiers = tiersOf(product.id);
     if (qty < group.min_member_qty)
-      throw unprocessable(`Guruhga kamida ${group.min_member_qty} ${product.unit} bilan qo‘shilish mumkin`, 'below_min', { minQty: group.min_member_qty });
+      throw unprocessable(
+        `Guruhga kamida ${group.min_member_qty} ${product.unit} bilan qo‘shilish mumkin`,
+        'below_min',
+        { minQty: group.min_member_qty },
+      );
     const remaining = group.target_qty - group.committed_qty;
     if (qty > remaining)
-      throw unprocessable(`Guruhda faqat ${remaining} ${product.unit} joy qoldi`, 'exceeds_group', { availableQty: remaining });
+      throw unprocessable(`Guruhda faqat ${remaining} ${product.unit} joy qoldi`, 'exceeds_group', {
+        availableQty: remaining,
+      });
     tier = tierFor(tiers, group.committed_qty + qty);
   }
   if (qty % product.pack_size !== 0)
-    throw unprocessable(`Miqdor ${product.pack_size} ${product.unit} qadoqqa karrali bo‘lishi kerak`, 'pack_size', { packSize: product.pack_size });
+    throw unprocessable(
+      `Miqdor ${product.pack_size} ${product.unit} qadoqqa karrali bo‘lishi kerak`,
+      'pack_size',
+      { packSize: product.pack_size },
+    );
   if (qty > product.stock_qty)
-    throw unprocessable(`Zaxirada faqat ${product.stock_qty} ${product.unit} bor`, 'insufficient_stock', { availableQty: product.stock_qty });
+    throw unprocessable(`Zaxirada faqat ${product.stock_qty} ${product.unit} bor`, 'insufficient_stock', {
+      availableQty: product.stock_qty,
+    });
   unitPrice = tier.unit_price;
   const subtotal = unitPrice * qty;
   return {
-    type, groupId: group?.id ?? null, zone, product, group, qty, unitPrice, tierMinQty: tier.min_qty,
-    subtotal, deliveryFee: zone.fee, total: subtotal + zone.fee,
+    type,
+    groupId: group?.id ?? null,
+    zone,
+    product,
+    group,
+    qty,
+    unitPrice,
+    tierMinQty: tier.min_qty,
+    subtotal,
+    deliveryFee: zone.fee,
+    total: subtotal + zone.fee,
     retailPrice: product.retail_verified ? product.retail_price : null,
     nextTier: nextTier(tiers, group ? group.committed_qty + qty : qty),
   };
@@ -188,14 +252,24 @@ export function quote({ type, productId, groupId, qty, zoneId }) {
 
 export function quoteDto(q) {
   return {
-    type: q.type, groupId: q.groupId, productId: q.product.id, title: q.product.title, unit: q.product.unit,
-    qty: q.qty, unitPrice: q.unitPrice, tierMinQty: q.tierMinQty, subtotal: q.subtotal,
-    deliveryFee: q.deliveryFee, total: q.total, zone: { id: q.zone.id, name: q.zone.name },
+    type: q.type,
+    groupId: q.groupId,
+    productId: q.product.id,
+    title: q.product.title,
+    unit: q.product.unit,
+    qty: q.qty,
+    unitPrice: q.unitPrice,
+    tierMinQty: q.tierMinQty,
+    subtotal: q.subtotal,
+    deliveryFee: q.deliveryFee,
+    total: q.total,
+    zone: { id: q.zone.id, name: q.zone.name },
     savings: q.retailPrice && q.retailPrice > q.unitPrice ? (q.retailPrice - q.unitPrice) * q.qty : null,
     nextTier: q.nextTier ? { minQty: q.nextTier.min_qty, unitPrice: q.nextTier.unit_price } : null,
-    priceFinalNote: q.type === 'group'
-      ? 'Yakuniy narx guruh yopilgandagi umumiy miqdorga qarab aniqlanadi. To‘langan narx yuqori bo‘lsa, farq qaytariladi.'
-      : null,
+    priceFinalNote:
+      q.type === 'group'
+        ? 'Yakuniy narx guruh yopilgandagi umumiy miqdorga qarab aniqlanadi. To‘langan narx yuqori bo‘lsa, farq qaytariladi.'
+        : null,
   };
 }
 
@@ -204,11 +278,15 @@ export function createOrder(user, body, idempotencyKey) {
   sweep();
   return tx(() => {
     if (idempotencyKey) {
-      const ex = db.prepare('SELECT id FROM orders WHERE user_id=? AND idempotency_key=?').get(user.id, idempotencyKey);
+      const ex = db
+        .prepare('SELECT id FROM orders WHERE user_id=? AND idempotency_key=?')
+        .get(user.id, idempotencyKey);
       if (ex) return { orderId: ex.id, replay: true };
     }
     const addr = db
-      .prepare('SELECT a.*, z.name zone_name FROM addresses a JOIN zones z ON z.id=a.zone_id WHERE a.id=? AND a.user_id=? AND a.active=1')
+      .prepare(
+        'SELECT a.*, z.name zone_name FROM addresses a JOIN zones z ON z.id=a.zone_id WHERE a.id=? AND a.user_id=? AND a.active=1',
+      )
       .get(int(body.addressId, 'Manzil', { min: 1 }), user.id);
     if (!addr) throw unprocessable('Yetkazib berish manzilini tanlang', 'address_required');
     const slot = body.slot ? oneOf(body.slot, SLOTS, 'Yetkazish vaqti') : 'day';
@@ -216,15 +294,23 @@ export function createOrder(user, body, idempotencyKey) {
     const { product, group } = q;
 
     if (group) {
-      const dup = db.prepare("SELECT 1 FROM group_members WHERE group_id=? AND user_id=? AND status IN('reserved','paid')").get(group.id, user.id);
+      const dup = db
+        .prepare(
+          "SELECT 1 FROM group_members WHERE group_id=? AND user_id=? AND status IN('reserved','paid')",
+        )
+        .get(group.id, user.id);
       if (dup) throw conflict('Siz bu guruhga allaqachon qo‘shilgansiz', 'already_member');
     }
     // atomic stock reservation (guarded update)
-    const r = db.prepare('UPDATE products SET stock_qty=stock_qty-? WHERE id=? AND stock_qty>=?').run(q.qty, product.id, q.qty);
+    const r = db
+      .prepare('UPDATE products SET stock_qty=stock_qty-? WHERE id=? AND stock_qty>=?')
+      .run(q.qty, product.id, q.qty);
     if (r.changes === 0) throw unprocessable('Zaxira yetarli emas', 'insufficient_stock');
     if (group) {
       const g = db
-        .prepare("UPDATE group_buys SET committed_qty=committed_qty+? WHERE id=? AND status='open' AND committed_qty+?<=target_qty AND ends_at>?")
+        .prepare(
+          "UPDATE group_buys SET committed_qty=committed_qty+? WHERE id=? AND status='open' AND committed_qty+?<=target_qty AND ends_at>?",
+        )
         .run(q.qty, group.id, q.qty, nowIso());
       if (g.changes === 0) throw unprocessable('Guruhda joy qolmadi yoki guruh yopildi', 'group_closed');
     }
@@ -232,13 +318,27 @@ export function createOrder(user, body, idempotencyKey) {
     const now = nowIso();
     const hold = new Date(Date.now() + getSettings().hold_minutes * 60000).toISOString();
     const item = {
-      productId: product.id, title: product.title, emoji: product.emoji, imageUrl: product.image_url, unit: product.unit, packSize: product.pack_size,
-      qty: q.qty, unitPrice: q.unitPrice, tierMinQty: q.tierMinQty, sellerId: product.seller_id, sellerName: product.seller_name,
+      productId: product.id,
+      title: product.title,
+      emoji: product.emoji,
+      imageUrl: product.image_url,
+      unit: product.unit,
+      packSize: product.pack_size,
+      qty: q.qty,
+      unitPrice: q.unitPrice,
+      tierMinQty: q.tierMinQty,
+      sellerId: product.seller_id,
+      sellerName: product.seller_name,
       retailPrice: q.retailPrice,
     };
     const snapshot = {
-      label: addr.label, zoneId: addr.zone_id, zoneName: addr.zone_name, street: addr.street, details: addr.details,
-      name: user.name, phone: user.phone,
+      label: addr.label,
+      zoneId: addr.zone_id,
+      zoneName: addr.zone_name,
+      street: addr.street,
+      details: addr.details,
+      name: user.name,
+      phone: user.phone,
     };
     const ins = db
       .prepare(
@@ -246,17 +346,48 @@ export function createOrder(user, body, idempotencyKey) {
            status,idempotency_key,hold_expires_at,created_at,updated_at)
          VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending_payment',?,?,?,?)`,
       )
-      .run(user.id, product.seller_id, q.type, group?.id ?? null, JSON.stringify([item]), q.subtotal, q.deliveryFee, q.total,
-        JSON.stringify(snapshot), addr.zone_id, slot, idempotencyKey ?? null, hold, now, now);
+      .run(
+        user.id,
+        product.seller_id,
+        q.type,
+        group?.id ?? null,
+        JSON.stringify([item]),
+        q.subtotal,
+        q.deliveryFee,
+        q.total,
+        JSON.stringify(snapshot),
+        addr.zone_id,
+        slot,
+        idempotencyKey ?? null,
+        hold,
+        now,
+        now,
+      );
     const orderId = Number(ins.lastInsertRowid);
-    db.prepare('INSERT INTO order_events(order_id,status,note,actor_id,at) VALUES(?,?,?,?,?)').run(orderId, 'pending_payment', null, user.id, now);
-    db.prepare('INSERT INTO deliveries(order_id,address_snapshot,zone_id,fee) VALUES(?,?,?,?)').run(orderId, JSON.stringify(snapshot), addr.zone_id, q.deliveryFee);
+    db.prepare('INSERT INTO order_events(order_id,status,note,actor_id,at) VALUES(?,?,?,?,?)').run(
+      orderId,
+      'pending_payment',
+      null,
+      user.id,
+      now,
+    );
+    db.prepare('INSERT INTO deliveries(order_id,address_snapshot,zone_id,fee) VALUES(?,?,?,?)').run(
+      orderId,
+      JSON.stringify(snapshot),
+      addr.zone_id,
+      q.deliveryFee,
+    );
     if (group) {
-      db.prepare("INSERT INTO group_members(group_id,user_id,qty,unit_price_snapshot,status,order_id,created_at) VALUES(?,?,?,?,'reserved',?,?)")
-        .run(group.id, user.id, q.qty, q.unitPrice, orderId, now);
+      db.prepare(
+        "INSERT INTO group_members(group_id,user_id,qty,unit_price_snapshot,status,order_id,created_at) VALUES(?,?,?,?,'reserved',?,?)",
+      ).run(group.id, user.id, q.qty, q.unitPrice, orderId, now);
       evalGroup(group.id);
     }
-    audit(user.id, group ? 'group.join' : 'order.create', 'order', orderId, { qty: q.qty, unitPrice: q.unitPrice, total: q.total });
+    audit(user.id, group ? 'group.join' : 'order.create', 'order', orderId, {
+      qty: q.qty,
+      unitPrice: q.unitPrice,
+      total: q.total,
+    });
     return { orderId, replay: false };
   });
 }
@@ -267,15 +398,53 @@ export function orderDto(o, { forSeller = false } = {}) {
   const addr = JSON.parse(o.address_snapshot);
   const pay = db.prepare('SELECT * FROM payments WHERE order_id=? ORDER BY id DESC LIMIT 1').get(o.id);
   const del = db.prepare('SELECT * FROM deliveries WHERE order_id=?').get(o.id);
-  const group = o.group_id ? db.prepare('SELECT id,status,target_qty,committed_qty,ends_at FROM group_buys WHERE id=?').get(o.group_id) : null;
+  const group = o.group_id
+    ? db
+        .prepare('SELECT id,status,target_qty,committed_qty,ends_at FROM group_buys WHERE id=?')
+        .get(o.group_id)
+    : null;
   const dto = {
-    id: o.id, type: o.type, status: o.status, items, subtotal: o.subtotal, deliveryFee: o.delivery_fee, total: o.total,
-    currency: o.currency, slot: o.delivery_slot, createdAt: o.created_at, updatedAt: o.updated_at, holdExpiresAt: o.status === 'pending_payment' ? o.hold_expires_at : null,
-    group: group && { id: group.id, status: group.status, targetQty: group.target_qty, committedQty: group.committed_qty, endsAt: group.ends_at },
-    payment: pay && { status: pay.status, refundStatus: pay.refund_status, refundAmount: pay.refund_amount, paidAt: pay.paid_at, note: pay.refund_note },
-    delivery: del && { id: del.id, status: del.status, scheduledAt: del.scheduled_at, windowEnd: del.window_end, deliveredAt: del.delivered_at },
+    id: o.id,
+    type: o.type,
+    status: o.status,
+    items,
+    subtotal: o.subtotal,
+    deliveryFee: o.delivery_fee,
+    total: o.total,
+    currency: o.currency,
+    slot: o.delivery_slot,
+    createdAt: o.created_at,
+    updatedAt: o.updated_at,
+    holdExpiresAt: o.status === 'pending_payment' ? o.hold_expires_at : null,
+    group: group && {
+      id: group.id,
+      status: group.status,
+      targetQty: group.target_qty,
+      committedQty: group.committed_qty,
+      endsAt: group.ends_at,
+    },
+    payment: pay && {
+      status: pay.status,
+      refundStatus: pay.refund_status,
+      refundAmount: pay.refund_amount,
+      paidAt: pay.paid_at,
+      note: pay.refund_note,
+    },
+    delivery: del && {
+      id: del.id,
+      status: del.status,
+      scheduledAt: del.scheduled_at,
+      windowEnd: del.window_end,
+      deliveredAt: del.delivered_at,
+    },
     waitingForGroup: !!group && ['open', 'threshold_met'].includes(group.status) && o.status === 'confirmed',
-    savings: items.reduce((s, it) => s + (it.retailPrice && it.retailPrice > it.unitPrice ? (it.retailPrice - it.unitPrice) * it.qty : 0), 0) || null,
+    savings:
+      items.reduce(
+        (s, it) =>
+          s +
+          (it.retailPrice && it.retailPrice > it.unitPrice ? (it.retailPrice - it.unitPrice) * it.qty : 0),
+        0,
+      ) || null,
   };
   if (forSeller) {
     dto.buyer = addr.name?.split(' ')[0] || 'Xaridor';
@@ -298,7 +467,8 @@ export function canBuyerCancel(o, group) {
 export function assertFulfillable(order) {
   if (!order.group_id) return;
   const g = db.prepare('SELECT status FROM group_buys WHERE id=?').get(order.group_id);
-  if (g?.status !== 'successful') throw conflict('Guruh hali muvaffaqiyatli yakunlanmagan', 'group_not_ready');
+  if (g?.status !== 'successful')
+    throw conflict('Guruh hali muvaffaqiyatli yakunlanmagan', 'group_not_ready');
 }
 
 export function requireOwnedOrder(id, user) {
