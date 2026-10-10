@@ -1,4 +1,17 @@
-import { html, t, money, num, badge, GROUP_STATUS, tick } from './core.js';
+import {
+  html,
+  t,
+  money,
+  num,
+  badge,
+  GROUP_STATUS,
+  api,
+  navigate,
+  guarded,
+  formData,
+  toast,
+  tick,
+} from './core.js';
 
 const p2n = (n) => String(n).padStart(2, '0');
 export const clock = (iso) => {
@@ -116,4 +129,25 @@ export function stepper(root, input, step, min, max, cb) {
   root.querySelector('[data-inc]').onclick = () => set(Number(input.value) + step);
   input.onchange = () => set(Number(input.value) || min);
   return set;
+}
+
+export const tabs = (base, items, cur) =>
+  html`<div class="tabs" role="tablist">${items.map(([k, l, n]) => html`<a role="tab" class="tab ${k === cur ? 'on' : ''}" href="${base}/${k}" data-link>${t(l)}${n ? html` <span class="pill">${n}</span>` : ''}</a>`)}</div>`;
+
+/** Wires the "open a group" form (#gf) of a panel page: POST to `endpoint`, then reload that page. */
+export function bindGroupForm(root, endpoint) {
+  const f = root.querySelector('#gf');
+  if (!f) return;
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    guarded(e.submitter, async () => {
+      const d = formData(f);
+      const body = { productId: Number(d.productId), targetQty: Number(d.targetQty) };
+      if (d.minMemberQty) body.minMemberQty = Number(d.minMemberQty);
+      if (d.durationHours) body.durationHours = Number(d.durationHours);
+      await api('POST', endpoint, body);
+      toast(t('Guruh ochildi'), 'ok');
+      navigate(endpoint, true);
+    });
+  };
 }

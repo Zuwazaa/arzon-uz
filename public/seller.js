@@ -17,10 +17,8 @@ import {
   guarded,
   formData,
 } from './core.js';
-import { progress } from './components.js';
+import { progress, tabs, bindGroupForm } from './components.js';
 
-export const tabs = (base, items, cur) =>
-  html`<div class="tabs" role="tablist">${items.map(([k, l, n]) => html`<a role="tab" class="tab ${k === cur ? 'on' : ''}" href="${base}/${k}" data-link>${t(l)}${n ? html` <span class="pill">${n}</span>` : ''}</a>`)}</div>`;
 const PSTATUS = {
   pending: ['Moderatsiyada', 'warn'],
   active: ['Faol', 'ok'],
@@ -171,20 +169,7 @@ async function groups(head) {
         : html`<p class="muted">—</p>`
     }`,
     mount: (el) => {
-      const f = el.querySelector('#gf');
-      if (!f) return;
-      f.onsubmit = (e) => {
-        e.preventDefault();
-        guarded(e.submitter, async () => {
-          const d = formData(f);
-          const body = { productId: Number(d.productId), targetQty: Number(d.targetQty) };
-          if (d.minMemberQty) body.minMemberQty = Number(d.minMemberQty);
-          if (d.durationHours) body.durationHours = Number(d.durationHours);
-          await api('POST', '/seller/groups', body);
-          toast(t('Guruh ochildi'), 'ok');
-          navigate('/seller/groups', true);
-        });
-      };
+      bindGroupForm(el, '/seller/groups');
     },
   };
 }

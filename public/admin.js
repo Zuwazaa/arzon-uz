@@ -21,8 +21,7 @@ import {
   guarded,
   formData,
 } from './core.js';
-import { tabs } from './seller.js';
-import { progress } from './components.js';
+import { progress, tabs, bindGroupForm } from './components.js';
 
 route('/admin', () => navigate('/admin/stats', true), { roles: ['admin'] });
 route(
@@ -209,19 +208,7 @@ async function groupsPage(head) {
       ${['open', 'threshold_met'].includes(g.status) ? html`<button class="btn sm bad" data-cancel="${g.id}">${t('Bekor qilish (refund bilan)')}</button>` : ''}</div>`,
     )}`,
     mount: (el) => {
-      const f = el.querySelector('#gf');
-      f.onsubmit = (e) => {
-        e.preventDefault();
-        guarded(e.submitter, async () => {
-          const d = formData(f);
-          const body = { productId: Number(d.productId), targetQty: Number(d.targetQty) };
-          if (d.minMemberQty) body.minMemberQty = Number(d.minMemberQty);
-          if (d.durationHours) body.durationHours = Number(d.durationHours);
-          await api('POST', '/admin/groups', body);
-          toast(t('Guruh ochildi'), 'ok');
-          navigate('/admin/groups', true);
-        });
-      };
+      bindGroupForm(el, '/admin/groups');
       act(
         el,
         '[data-cancel]',

@@ -229,6 +229,7 @@ h3 {
   border-radius: 10px 0 0 10px;
   border-right: 0;
   min-height: 44px;
+  padding-right: 38px;
 }
 .hsearch .sgo {
   border-radius: 0 10px 10px 0;
@@ -547,6 +548,7 @@ a.card:hover {
   display: flex;
   flex-direction: column;
   padding: 10px;
+  gap: 0;
 }
 .product h3 {
   margin: 11px 0 2px;
@@ -642,24 +644,6 @@ a.card:hover .thumb img {
   color: var(--muted);
   font-size: 0.8rem;
   letter-spacing: 0;
-}
-.price-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.old {
-  color: var(--muted);
-  font-size: 0.86rem;
-  text-decoration-color: var(--sale);
-  text-decoration-thickness: 2px;
-}
-.off {
-  color: var(--sale);
-  font-size: 0.86rem;
-  font-weight: 700;
 }
 .muted {
   color: var(--muted);
@@ -1017,7 +1001,7 @@ mark {
 }
 .band .section-head p,
 .band .section-head a {
-  color: #1f3a2a;
+  color: #3d3000;
 }
 .band .section-head h2 {
   color: #14241b;
@@ -1028,44 +1012,6 @@ mark {
 .band a.card:hover {
   box-shadow: 7px 7px 0 #14241b;
 }
-.how ol {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  counter-reset: s;
-  margin: 0;
-}
-.how li {
-  counter-increment: s;
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-.how li b {
-  color: var(--text);
-  display: block;
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
-  margin-bottom: 3px;
-}
-.how li::before {
-  content: counter(s);
-  display: block;
-  font-size: 4.6rem;
-  line-height: 0.95;
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  color: transparent;
-  -webkit-text-stroke: 2px var(--ink);
-  margin-bottom: 4px;
-}
-@media (prefers-color-scheme: dark) {
-  .how li::before {
-    -webkit-text-stroke-color: #f5efdc;
-  }
-}
 .cta {
   --bleed: var(--mint);
   background: var(--mint);
@@ -1073,6 +1019,7 @@ mark {
   margin-top: 60px;
   padding: 46px 16px;
   text-align: center;
+  margin-bottom: -56px;
 }
 .cta h2 {
   margin: 0 0 10px;
@@ -1452,41 +1399,25 @@ img {
 }
 .hero2 p,
 .section-head p,
-.how li,
 .crumbs {
   color: #353d31;
 }
 @media (prefers-color-scheme: dark) {
   .hero2 p,
   .section-head p,
-  .how li,
   .crumbs {
     color: var(--muted);
   }
   .band .section-head p {
-    color: #1f3a2a;
+    color: #b9b7a2;
   }
 }
 
 /* simple cards */
-.was {
-  font-size: 0.9rem;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.was s {
-  text-decoration-color: var(--sale);
-  text-decoration-thickness: 2px;
-}
 .product .price {
   font-size: 1.3rem;
   margin-top: 4px;
-}
-.product .off {
-  font-size: 0.92rem;
-}
-.need {
-  margin-top: 6px;
+  margin-bottom: 12px;
 }
 .go {
   display: block;
@@ -1499,21 +1430,8 @@ img {
   border-radius: 10px;
   padding: 9px 10px;
 }
-.product .need + .go,
-.group .price + .small + .go {
-  margin-top: 12px;
-}
-.product {
-  gap: 0;
-}
-.product .need {
-  margin-bottom: 0;
-}
 .product .go {
   margin-top: auto;
-}
-.product .need {
-  padding-bottom: 12px;
 }
 .group .go {
   margin-top: 12px;
@@ -1528,9 +1446,6 @@ a.card:hover .go {
   width: 200px;
   height: auto;
   display: block;
-}
-.cta {
-  margin-bottom: -56px;
 }
 
 /* live group progress */
@@ -1603,9 +1518,6 @@ a.card:hover .go {
   flex: 1;
   min-width: 0;
   display: flex;
-}
-.hsearch input {
-  padding-right: 38px;
 }
 input[type='search']::-webkit-search-cancel-button {
   display: none;
@@ -1835,12 +1747,12 @@ input[type='search']::-webkit-search-cancel-button {
   right: 0;
   bottom: 0;
   z-index: 3;
-  padding: 34px 12px 11px;
   background: linear-gradient(rgba(12, 26, 18, 0), rgba(12, 26, 18, 0.93) 30%);
   color: #fbf4e4;
   opacity: 0;
   transform: translateY(16px);
   pointer-events: none;
+  padding: 34px 10px 10px;
 }
 .saveov-h {
   font-size: 0.68rem;
@@ -1853,13 +1765,15 @@ input[type='search']::-webkit-search-cancel-button {
 .srow2 {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 0.88rem;
   padding: 2px 0;
+  font-size: 0.8rem;
+  gap: 6px;
 }
 .srow2 b {
   font-variant-numeric: tabular-nums;
   color: #fff;
+  margin-left: auto;
+  letter-spacing: -0.01em;
 }
 .srow2:last-child b {
   color: var(--sun);
@@ -1881,25 +1795,6 @@ html:not(.has-motion) a.card:focus-visible .saveov {
 .srow2 b {
   white-space: nowrap;
 }
-.srow2 b {
-  margin-left: auto;
-}
-.saveov {
-  padding: 34px 10px 10px;
-}
-.srow2 {
-  font-size: 0.8rem;
-  gap: 6px;
-}
-.srow2 b {
-  letter-spacing: -0.01em;
-}
-.product .price {
-  margin-bottom: 12px;
-}
-.product .go {
-  margin-top: auto;
-}
 .band + .cta {
   margin-top: 0;
 }
@@ -1907,20 +1802,12 @@ html:not(.has-motion) a.card:focus-visible .saveov {
   .hero2 p,
   .section-head p,
   .crumbs,
-  .rescount,
-  .how li {
+  .rescount {
     color: #e3dec9;
   }
   .rescount b {
     color: #fff;
   }
-  .band .section-head p {
-    color: #1f3a2a;
-  }
-}
-.band .section-head p,
-.band .section-head a {
-  color: #3d3000;
 }
 .band .go {
   background: var(--mint-d);
@@ -1944,9 +1831,6 @@ html:not(.has-motion) a.card:focus-visible .saveov {
     border-radius: 2px;
     background: var(--sun);
     margin-top: 8px;
-  }
-  .band .section-head p {
-    color: #b9b7a2;
   }
   .band .section-head a {
     color: var(--sun);
