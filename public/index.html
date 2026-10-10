@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14241b">
+  <title>Arzon.uz — optom narxlar, hammaga!</title>
+  <meta name="description" content="Kundalik mahsulotlarni ulgurji narxda yoki guruh bo‘lib arzonroq xarid qiling.">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Asosiy mazmunga o‘tish</a>
+  <div class="promo">Guruhga qo‘shiling: limit to‘lsa, hamma <b>yakuniy arzon narxdan</b> oladi. <a href="/groups" data-link>Guruhlar →</a></div>
+  <header class="top">
+    <div class="wrap bar-top">
+      <a href="/" data-link class="logo" aria-label="Arzon.uz"><img class="logo-ic" src="/img/logo-icon.png" alt="" width="53" height="40"><picture><source media="(prefers-color-scheme: dark)" srcset="/img/logo-word-light.png"><img class="logo-wd" src="/img/logo-word.png" alt="Arzon.uz" width="176" height="26"></picture></a>
+      <form class="hsearch" id="hsearch" role="search" autocomplete="off">
+        <div class="sfield">
+          <input name="q" type="search" role="combobox" aria-expanded="false" aria-controls="sbox" aria-autocomplete="list" placeholder="Mahsulot qidirish ( / )" aria-label="Qidiruv" maxlength="60" enterkeyhint="search">
+          <button type="button" class="sclear" aria-label="Tozalash" hidden>×</button>
+          <div id="sbox" class="sbox" role="listbox" aria-label="Qidiruv takliflari" hidden></div>
+        </div>
+        <button type="submit" class="sgo">Qidirish</button>
+      </form>
+      <nav class="nav" aria-label="Asosiy">
+        <a href="/products" data-link data-nav>Katalog</a>
+        <a href="/groups" data-link data-nav>Guruhlar</a>
+        <a href="/profile/orders" data-link data-nav>Buyurtmalar</a>
+      </nav>
+      <div id="acct"></div>
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1"></main>
+  <footer class="wrap foot bleed">
+    <div><img class="foot-logo" src="/img/logo-full-light.png" alt="Arzon.uz — optom narxlar, hammaga!" width="200" height="153"></div>
+    <div>Ulgurji va guruhli xarid platformasi. Toshkent pilot hududi.</div>
+    <div>Narxlar so‘mda. Yetkazib berish narxi to‘lovdan oldin, yakuniy summada ko‘rsatiladi.</div>
+    <div><a href="/products" data-link>Katalog</a> · <a href="/groups" data-link>Guruhlar</a> · <a href="/profile/orders" data-link>Buyurtmalar</a></div>
+  </footer>
+  <nav class="tabbar" aria-label="Mobil">
+    <a href="/" data-link data-nav><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Bosh</span></a>
+    <a href="/products" data-link data-nav><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Katalog</span></a>
+    <a href="/groups" data-link data-nav><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M17 14c2.5 0 4.5 2 4.5 4.5"/></svg><span>Guruhlar</span></a>
+    <a href="/profile/orders" data-link data-nav><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5l9 4.5 9-4.5M12 12v9"/></svg><span>Buyurtma</span></a>
+    <a href="/profile" data-link data-nav><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg><span>Profil</span></a>
+  </nav>
+  <div id="toasts" aria-live="polite"></div>
+  <script src="/vendor/motion.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

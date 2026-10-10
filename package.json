@@ -1,0 +1,25 @@
+{
+  "name": "optom-uz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Arzon.uz — ulgurji va jamoaviy xarid web platformasi (MVP)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "seed": "node server/seed.js --reset",
+    "test": "node --test test/*.test.js",
+    "images": "node server/fetch-images.js",
+    "catalog:extra": "node server/catalog-extra.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "motion": "^14.0.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}
