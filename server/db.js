@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
-import { generateRoomCode } from './rooms.js';
+import { generateRoomCode, roomCodeFromSeed } from './rooms.js';
 
 export const dbFile = process.env.DB_FILE || path.join(process.cwd(), 'data', 'optom.db');
 if (dbFile !== ':memory:') fs.mkdirSync(path.dirname(dbFile), { recursive: true });
@@ -106,11 +106,17 @@ try {
 }
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_group_code ON group_buys(code)');
 
-/** A room code no other group uses yet. */
-export function newRoomCode() {
+const roomCodeTaken = (code) => !!db.prepare('SELECT 1 FROM group_buys WHERE code=?').get(code);
+
+/** A room code no other group uses yet. With a `seed` the code is stable (used for demo data). */
+export function newRoomCode(seed = null) {
+  if (seed !== null) {
+    const stable = roomCodeFromSeed(seed);
+    if (!roomCodeTaken(stable)) return stable;
+  }
   for (;;) {
     const code = generateRoomCode();
-    if (!db.prepare('SELECT 1 FROM group_buys WHERE code=?').get(code)) return code;
+    if (!roomCodeTaken(code)) return code;
   }
 }
 for (const { id } of db.prepare('SELECT id FROM group_buys WHERE code IS NULL').all()) {
