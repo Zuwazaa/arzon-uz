@@ -11,6 +11,7 @@ import {
   formData,
   toast,
   tick,
+  copyText,
 } from './core.js';
 
 const p2n = (n) => String(n).padStart(2, '0');
@@ -150,4 +151,46 @@ export function bindGroupForm(root, endpoint) {
       navigate(endpoint, true);
     });
   };
+}
+
+// ---- group rooms: a group's own page, entered by a short code or a shared link
+export const roomLink = (code) => `${location.origin}/room/${code}`;
+
+export const roomEntry = () => html`<form class="card room-entry" id="room-entry">
+  <label for="room-code"><b>${t('Guruh kodingiz bormi?')}</b> ${t('Kodni yoki havolani kiriting')}</label>
+  <div class="row gap"><input id="room-code" name="code" placeholder="K7M4QX" autocomplete="off" autocapitalize="characters" maxlength="120" required>
+  <button class="btn primary">${t('Xonaga kirish')}</button></div></form>`;
+
+export function bindRoomEntry(root) {
+  const f = root.querySelector('#room-entry');
+  if (!f) return;
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    const typed = f.code.value.trim();
+    const fromLink = typed.match(/\/room\/([A-Za-z0-9-]+)/);
+    const code = (fromLink ? fromLink[1] : typed).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code) navigate('/room/' + code);
+  };
+}
+
+/** Copy-code / copy-link / share buttons of a room (markup: data-copy-code, data-copy-link, data-share). */
+export function bindRoomShare(root, group) {
+  const url = roomLink(group.code);
+  const on = (sel, fn) => {
+    const el = root.querySelector(sel);
+    if (el) el.onclick = fn;
+  };
+  on('[data-copy-code]', () => copyText(group.code, t('Kod nusxalandi')));
+  on('[data-copy-link]', () => copyText(url));
+  on('[data-share]', async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: group.product.title, text: `${t('Guruh kodi')}: ${group.code}`, url });
+        return;
+      } catch {
+        /* cancelled */
+      }
+    }
+    copyText(url);
+  });
 }

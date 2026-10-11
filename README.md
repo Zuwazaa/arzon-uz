@@ -27,6 +27,7 @@ Demo hisoblar (parol: `demo12345`): admin `+998900000001`, sotuvchilar `+9989000
 | FR-12 to‘lov | `server/payments.js` — `paid` faqat imzolangan webhook orqali |
 | FR-13 tejash | faqat admin tasdiqlagan bozor narxi bo‘lsa ko‘rsatiladi |
 | FR-14 havola | guruh sahifasida “ulashish” |
+| Guruh xonasi | `/room/KOD` — har guruhning qisqa kodi (6 belgi) va o‘z sahifasi: kod/havola bilan kirish, miqdor tanlash va buyurtma shu yerda. `GET /api/rooms/:code` |
 | FR-15 manzillarni birlashtirish (P2) | qilinmagan |
 
 ## Qabul qilingan qarorlar (PRD §15 ochiq savollari bo‘yicha — o‘zgartirish mumkin)

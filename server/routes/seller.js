@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db, tx, nowIso, getSettings } from '../db.js';
+import { db, tx, nowIso, getSettings, newRoomCode } from '../db.js';
 import { requireRole, rateLimit } from '../auth.js';
 import { ApiError, audit, bad, conflict, forbidden, int, notFound, oneOf, slugify, str } from '../util.js';
 import { productDto, groupDto, PRODUCT_SELECT } from '../dto.js';
@@ -186,7 +186,7 @@ export function createGroup(actor, body, ownerOnly) {
   const now = nowIso();
   const info = db
     .prepare(
-      'INSERT INTO group_buys(product_id,seller_id,target_qty,min_member_qty,starts_at,ends_at,created_at) VALUES(?,?,?,?,?,?,?)',
+      'INSERT INTO group_buys(product_id,seller_id,target_qty,min_member_qty,starts_at,ends_at,created_at,code) VALUES(?,?,?,?,?,?,?,?)',
     )
     .run(
       p.id,
@@ -196,6 +196,7 @@ export function createGroup(actor, body, ownerOnly) {
       now,
       new Date(Date.now() + hours * 3600_000).toISOString(),
       now,
+      newRoomCode(),
     );
   audit(actor.id, 'group.create', 'group', Number(info.lastInsertRowid), { target, hours });
   return Number(info.lastInsertRowid);

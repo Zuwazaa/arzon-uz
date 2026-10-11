@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { generateRoomCode } from './rooms.js';
 
 export const dbFile = process.env.DB_FILE || path.join(process.cwd(), 'data', 'optom.db');
 if (dbFile !== ':memory:') fs.mkdirSync(path.dirname(dbFile), { recursive: true });
@@ -97,6 +98,23 @@ try {
   db.exec('ALTER TABLE products ADD COLUMN image_url TEXT');
 } catch {
   /* already applied */
+}
+try {
+  db.exec('ALTER TABLE group_buys ADD COLUMN code TEXT');
+} catch {
+  /* already applied */
+}
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_group_code ON group_buys(code)');
+
+/** A room code no other group uses yet. */
+export function newRoomCode() {
+  for (;;) {
+    const code = generateRoomCode();
+    if (!db.prepare('SELECT 1 FROM group_buys WHERE code=?').get(code)) return code;
+  }
+}
+for (const { id } of db.prepare('SELECT id FROM group_buys WHERE code IS NULL').all()) {
+  db.prepare('UPDATE group_buys SET code=? WHERE id=?').run(newRoomCode(), id);
 }
 db.exec(`
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);

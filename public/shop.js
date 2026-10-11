@@ -30,6 +30,10 @@ import {
   tierPrice,
   liveCountdowns,
   stepper,
+  roomEntry,
+  bindRoomEntry,
+  bindRoomShare,
+  roomLink,
 } from './components.js';
 
 // ------------------------------------------------------------------ home
@@ -76,12 +80,16 @@ route('/', async () => {
     ${
       groups.length
         ? html`<section class="band bleed"><div class="section-head"><div><h2>${t('Birgalikda olamiz, arzonroq olamiz')}</h2><p>${t('Limit to‘lguncha qo‘shiling. Yakuniy narx hamma uchun bir xil.')}</p></div><a href="/groups" data-link>${t('Barcha guruhlar')} →</a></div>
+      ${roomEntry()}
       <div class="grid">${groups.slice(0, 6).map(groupCard)}</div></section>`
         : ''
     }
     <section class="cta bleed"><h2>${t('Birinchi buyurtmangizni bering')}</h2><p>${t('Katalogdan tanlang yoki ochiq guruhga qo‘shilib, narxni birgalikda tushiring.')}</p>
       <a class="btn big" href="/products" data-link>${t('Katalogga o‘tish')} →</a></section>`,
-    mount: (el) => liveCountdowns(el),
+    mount: (el) => {
+      bindRoomEntry(el);
+      return liveCountdowns(el);
+    },
   };
 });
 
@@ -177,15 +185,19 @@ route('/groups', async () => {
   const groups = await api('GET', '/groups');
   return {
     html: html`<h1>${t('Faol guruhlar')}</h1><p class="muted">${t('Guruh limiti to‘lganda barcha ishtirokchilar yakuniy chegirmali narxdan foydalanadi.')}</p>
+    ${roomEntry()}
     ${groups.length ? html`<div class="grid">${groups.map(groupCard)}</div>` : html`<div class="empty"><p>${t('Hozircha faol guruhlar yo‘q.')}</p></div>`}`,
-    mount: liveCountdowns,
+    mount: (el) => {
+      bindRoomEntry(el);
+      return liveCountdowns(el);
+    },
   };
 });
 
 route('/groups/:id', async ({ params }) => {
   const g = await api('GET', '/groups/' + params[0]);
   const p = g.product;
-  const url = `${location.origin}/groups/${g.id}`;
+  const url = roomLink(g.code);
   const min = Math.max(g.minMemberQty, p.packSize);
   const can = g.joinable && !g.mine && g.remainingQty >= min && p.stockQty >= min;
   return {
@@ -196,6 +208,7 @@ route('/groups/:id', async ({ params }) => {
       <div>
         <div class="row between"><h1>${p.title}</h1>${badge(GROUP_STATUS, g.status)}</div>
         <p class="muted">${t('Sotuvchi')}: <b>${p.sellerName}</b> · ${num(g.members)} ${t('ishtirokchi')}</p>
+        <p class="small">${t('Guruh kodi')}: <b class="room-code-inline">${g.code}</b> · <a href="/room/${g.code}" data-link>${t('Guruh xonasi')}</a></p>
         <div class="card">
           <div class="gclock"><span class="muted small">${t('Guruh tugashiga')}</span><div class="bigclock" data-countdown="${g.endsAt}" data-label="">${clock(g.endsAt)}</div></div>
           ${progress(g.committedQty, g.targetQty)}
@@ -245,7 +258,7 @@ route('/groups/:id', async ({ params }) => {
           );
         };
         stepper(el, input, p.packSize, min, Math.min(g.remainingQty, p.stockQty), upd)(min);
-        el.querySelector('#join').onclick = () => navigate(`/checkout?group=${g.id}&qty=${input.value}`);
+        el.querySelector('#join').onclick = () => navigate(`/room/${g.code}?qty=${input.value}`);
       }
       return stop;
     },
@@ -253,11 +266,26 @@ route('/groups/:id', async ({ params }) => {
 });
 
 // ------------------------------------------------------------------ checkout
-route('/checkout', async ({ query }) => {
+route('/checkout', ({ query }) =>
+  checkoutPage({
+    groupId: query.get('group'),
+    productId: query.get('product'),
+    qty: Number(query.get('qty')) || 1,
+  }),
+);
+
+/**
+ * Order page for an individual purchase or a group join (needs a signed-in user).
+ * A group room passes its own `header` and a `qtyRange` so the quantity is chosen on the same page.
+ */
+async function checkoutPage({
+  groupId = null,
+  productId = null,
+  qty: qty0 = 1,
+  header = null,
+  qtyRange = null,
+}) {
   if (!state.user) throw Object.assign(new Error('auth'), { status: 401 });
-  const groupId = query.get('group'),
-    productId = query.get('product');
-  const qty0 = Number(query.get('qty')) || 1;
   const [addresses, zones] = await Promise.all([api('GET', '/me/addresses'), api('GET', '/zones')]);
   const ctx = {
     addressId: addresses[0]?.id ?? null,
@@ -274,10 +302,11 @@ route('/checkout', async ({ query }) => {
     qty: ctx.qty,
   });
   return {
-    html: html`<h1>${kind === 'group' ? t('Guruhga qo‘shilish — buyurtma') : t('Buyurtmani rasmiylashtirish')}</h1>
+    html: html`${header ?? html`<h1>${kind === 'group' ? t('Guruhga qo‘shilish — buyurtma') : t('Buyurtmani rasmiylashtirish')}</h1>`}
     <div class="checkout"><div>
-      <section class="card"><h3>1. ${t('Yetkazib berish manzili')}</h3><div id="addr"></div></section>
-      <section class="card"><h3>2. ${t('Yetkazib berish vaqti')}</h3>
+      ${qtyRange ? html`<section class="card"><h3>1. ${t('Miqdor')}</h3><div id="roomqty"><div class="qty"><button type="button" class="btn" data-dec aria-label="−">−</button><input id="roomqty-input" type="number" inputmode="numeric" min="${qtyRange.min}" max="${qtyRange.max}" step="${qtyRange.step}" value="${qty0}" aria-label="${t('Miqdor')}"><button type="button" class="btn" data-inc aria-label="+">+</button><span>${qtyRange.unit}</span></div></div></section>` : ''}
+      <section class="card"><h3>${qtyRange ? 2 : 1}. ${t('Yetkazib berish manzili')}</h3><div id="addr"></div></section>
+      <section class="card"><h3>${qtyRange ? 3 : 2}. ${t('Yetkazib berish vaqti')}</h3>
         <select id="slot" aria-label="${t('Yetkazish vaqti')}">${Object.entries(SLOT).map(([k, v]) => html`<option value="${k}" ${k === 'day' ? raw('selected') : ''}>${t(v)}</option>`)}</select>
         <p class="small muted">${t('Aniq vaqt oralig‘i buyurtma tasdiqlangach, operator tomonidan belgilanadi.')}</p></section>
     </div>
@@ -373,8 +402,77 @@ route('/checkout', async ({ query }) => {
           const intent = await api('POST', '/payments/intent', { orderId: out.orderId });
           location.href = intent.checkoutUrl; // provider-hosted checkout; paid status arrives via server webhook
         });
+      if (qtyRange) {
+        stepper($('#roomqty'), $('#roomqty-input'), qtyRange.step, qtyRange.min, qtyRange.max, (v) => {
+          ctx.qty = v;
+          refresh();
+        });
+      }
       renderAddr();
       refresh();
     },
   };
+}
+
+// ------------------------------------------------------------------ group room
+const roomHeader = (g) => {
+  const p = g.product;
+  return html`<nav class="crumbs"><a href="/groups" data-link>${t('Guruhlar')}</a> / ${t('Guruh xonasi')}</nav>
+  <section class="card room-head">
+    <div class="row between wrap"><div><span class="kicker">${t('Guruh xonasi')}</span><h1>${p.title}</h1>
+      <p class="muted">${t('Sotuvchi')}: <b>${p.sellerName}</b> · ${num(g.members)} ${t('ishtirokchi')}</p></div>${badge(GROUP_STATUS, g.status)}</div>
+    <div class="room-share">
+      <div><span class="small muted">${t('Xona kodi')}</span><div class="room-code" aria-label="${t('Xona kodi')}">${g.code}</div></div>
+      <div class="row wrap gap"><button type="button" class="btn sm" data-copy-code>${t('Kodni nusxalash')}</button>
+        <button type="button" class="btn sm" data-copy-link>${t('Havolani nusxalash')}</button>
+        <button type="button" class="btn sm primary" data-share>${t('Do‘stlarga ulashish')}</button></div>
+    </div>
+    <p class="small muted">${t('Do‘stlaringiz shu kod yoki havola orqali shu xonaga kirib, guruhga qo‘shilishadi.')}</p>
+    <div class="gclock"><span class="muted small">${t('Guruh tugashiga')}</span><div class="bigclock" data-countdown="${g.endsAt}" data-label="">${clock(g.endsAt)}</div></div>
+    ${progress(g.committedQty, g.targetQty)}
+    <div class="row between"><span><b class="pct">${groupStats(g).pct}%</b> ${t('yig‘ildi')} · ${num(g.committedQty)} / ${num(g.targetQty)} ${p.unit}</span><span>${num(g.members)} ${t('ishtirokchi')}</span></div>
+    ${needLeft(g, p.unit)}
+    <div class="row between"><span>${t('Joriy narx')}</span><b class="price">${money(g.currentUnitPrice)} / ${p.unit}</b></div>
+    ${g.nextTier ? html`<p class="small ok">${t('Yana')} <b>${num(g.nextTier.needed)} ${p.unit}</b> ${t('yig‘ilsa narx')} <b>${money(g.nextTier.unitPrice)}</b> ${t('bo‘ladi')}.</p>` : ''}
+  </section>`;
+};
+
+route('/room/:code', async ({ params, query }) => {
+  const g = await api('GET', '/rooms/' + encodeURIComponent(params[0]));
+  const p = g.product;
+  const min = Math.max(g.minMemberQty, p.packSize);
+  const max = Math.min(g.remainingQty, p.stockQty);
+  const canJoin = g.joinable && !g.mine && max >= min;
+  const header = roomHeader(g);
+  const mountRoom = (el) => {
+    bindRoomShare(el, g);
+    return liveCountdowns(el);
+  };
+
+  if (canJoin && state.user) {
+    const asked = Math.round((Number(query.get('qty')) || min) / p.packSize) * p.packSize;
+    const page = await checkoutPage({
+      groupId: g.id,
+      qty: Math.min(max, Math.max(min, asked)),
+      header,
+      qtyRange: { min, max, step: p.packSize, unit: p.unit },
+    });
+    return {
+      html: page.html,
+      mount: (el) => {
+        const stop = mountRoom(el);
+        page.mount(el);
+        return stop;
+      },
+    };
+  }
+
+  const next = encodeURIComponent('/room/' + g.code);
+  const note = g.mine
+    ? html`<div class="card ok-box">${t('Siz bu guruhdasiz')}: <b>${num(g.mine.qty)} ${p.unit}</b> (${g.mine.status === 'paid' ? t('to‘langan') : t('to‘lov kutilmoqda')}). <a href="/profile/orders/${g.mine.orderId}" data-link>${t('Buyurtmani ko‘rish')}</a></div>`
+    : canJoin
+      ? html`<div class="card"><h3>${t('Guruhga qo‘shilish uchun kiring')}</h3><p class="small muted">${t('Buyurtma berish uchun hisobingizga kiring yoki ro‘yxatdan o‘ting. Shundan keyin shu xonaga qaytasiz.')}</p>
+          <div class="row wrap gap"><a class="btn primary" href="/auth/login?next=${next}" data-link>${t('Kirish')}</a><a class="btn" href="/auth/register?next=${next}" data-link>${t('Ro‘yxatdan o‘tish')}</a></div></div>`
+      : html`<p class="warn-text">${g.joinable ? t('Hozir qo‘shilib bo‘lmaydi (joy yoki zaxira yetarli emas).') : t('Bu guruh yangi ishtirokchilarni qabul qilmaydi.')}</p>`;
+  return { html: html`${header}${note}`, mount: mountRoom };
 });

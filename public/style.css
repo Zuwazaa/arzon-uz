@@ -1874,3 +1874,52 @@ html:not(.has-motion) a.card:focus-visible .saveov {
     box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
   }
 }
+
+/* group rooms */
+.room-head {
+  box-shadow: 6px 6px 0 var(--hs);
+}
+.room-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  margin: 14px 0 6px;
+  padding: 14px 16px;
+  background: var(--soft);
+  border: var(--bw) dashed var(--line);
+  border-radius: 12px;
+}
+.room-code {
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.room-code-inline {
+  letter-spacing: 0.12em;
+  background: var(--sun);
+  color: #14241b;
+  padding: 1px 8px;
+  border-radius: 6px;
+}
+.room-entry {
+  margin: 14px 0;
+}
+.room-entry label {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.room-entry input {
+  flex: 1 1 200px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.band .room-entry {
+  background: var(--card);
+}

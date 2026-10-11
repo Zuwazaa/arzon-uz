@@ -59,6 +59,7 @@ export function groupDto(g, userId) {
     .get(g.id).n;
   return {
     id: g.id,
+    code: g.code,
     status: g.status,
     targetQty: g.target_qty,
     committedQty: g.committed_qty,

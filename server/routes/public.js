@@ -24,6 +24,7 @@ import {
 } from '../util.js';
 import { productDto, groupDto, PRODUCT_SELECT } from '../dto.js';
 import { rankProducts, matchCategories, POPULAR } from '../search.js';
+import { normalizeRoomCode } from '../rooms.js';
 import {
   quote,
   quoteDto,
@@ -209,6 +210,14 @@ r.get('/groups', (req, res) => {
     ? db.prepare("SELECT * FROM group_buys WHERE status='open' AND ends_at>? ORDER BY ends_at").all(nowIso())
     : db.prepare('SELECT * FROM group_buys ORDER BY id DESC LIMIT 100').all();
   res.json(rows.map((g) => groupDto(g, req.user?.id)));
+});
+// A group's room: the same group, found by its short code (or a pasted room link).
+r.get('/rooms/:code', (req, res) => {
+  sweep();
+  const code = normalizeRoomCode(req.params.code);
+  const g = code && db.prepare('SELECT * FROM group_buys WHERE code=?').get(code);
+  if (!g) throw notFound('Bunday kodli guruh xonasi topilmadi');
+  res.json(groupDto(g, req.user?.id));
 });
 r.get('/groups/:id', (req, res) => {
   sweep();

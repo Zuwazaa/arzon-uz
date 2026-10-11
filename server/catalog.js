@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { db, tx, nowIso } from './db.js';
+import { db, tx, nowIso, newRoomCode } from './db.js';
 import { slugify } from './util.js';
 import { WIKI, WIKI_BASE, imgUrl } from './product-images.js';
 import { PACKS } from './catalog-data.js';
@@ -53,8 +53,8 @@ function insertProduct(p, categoryIds, sellerId, now) {
 function insertGroup(productId, sellerId, [target, minMember, hours], now) {
   const endsAt = new Date(Date.now() + hours * HOUR_MS).toISOString();
   db.prepare(
-    'INSERT INTO group_buys(product_id,seller_id,target_qty,min_member_qty,starts_at,ends_at,created_at) VALUES(?,?,?,?,?,?,?)',
-  ).run(productId, sellerId, target, minMember, now, endsAt, now);
+    'INSERT INTO group_buys(product_id,seller_id,target_qty,min_member_qty,starts_at,ends_at,created_at,code) VALUES(?,?,?,?,?,?,?,?)',
+  ).run(productId, sellerId, target, minMember, now, endsAt, now, newRoomCode());
 }
 
 /** Adds a pack's products, then its groups. `sellerIds[0]` / `sellerIds[1]` are the first two sellers. */

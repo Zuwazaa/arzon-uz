@@ -226,10 +226,10 @@ export function tick(fn, ms = 1000) {
   return () => clearInterval(id);
 }
 export const formData = (form) => Object.fromEntries(new FormData(form));
-export const copyText = async (txt) => {
+export const copyText = async (txt, message = t('Havola nusxalandi')) => {
   try {
     await navigator.clipboard.writeText(txt);
-    toast(t('Havola nusxalandi'), 'ok');
+    toast(message, 'ok');
   } catch {
     prompt(t('Havolani nusxalang'), txt);
   }

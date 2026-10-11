@@ -61,7 +61,7 @@ async function newBuyer(phone) {
     phone,
     password: 'password123',
   });
-  assert.equal(r.status, 201);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
   await c.call('POST', '/api/me/addresses', { label: 'Uy', zoneId: 1, street: 'Test kocha 1' });
   const a = (await c.call('GET', '/api/me/addresses')).body[0];
   return { c, addressId: a.id };
@@ -263,4 +263,63 @@ test('delivery lifecycle + role checks + stats', async () => {
   assert.equal(st.deliveredOrders, 1);
   assert.equal(st.deliveryCostPerOrder, 9000);
   assert.ok(st.groupCompletionRate !== null);
+});
+
+test('group rooms: every group has a unique short code, found by code or pasted link', async () => {
+  const anon = new Client();
+  const groups = (await anon.call('GET', '/api/groups')).body;
+  assert.ok(groups.length >= 2);
+  const codes = groups.map((g) => g.code);
+  assert.ok(
+    codes.every((c) => /^[A-HJ-NP-Z2-9]{6}$/.test(c)),
+    'codes use the unambiguous alphabet',
+  );
+  assert.equal(new Set(codes).size, codes.length, 'codes are unique');
+
+  const g = groups[0];
+  for (const input of [
+    g.code,
+    g.code.toLowerCase(),
+    ` ${g.code.slice(0, 3)}-${g.code.slice(3)} `,
+    `https://x.uz/room/${g.code}`,
+  ]) {
+    const r = await anon.call('GET', '/api/rooms/' + encodeURIComponent(input));
+    assert.equal(r.status, 200, `lookup by ${input}`);
+    assert.equal(r.body.id, g.id);
+  }
+  assert.equal((await anon.call('GET', '/api/rooms/ZZZZZZ')).status, 404);
+  assert.equal((await anon.call('GET', '/api/rooms/---')).status, 404);
+});
+
+test('group rooms: a group opened by a seller gets a code and can be joined from its room', async () => {
+  const seller = new Client();
+  await seller.login('+998900000003');
+  const mine = (await seller.call('GET', '/api/seller/products')).body;
+  const free = mine.find(
+    (p) =>
+      p.status === 'active' &&
+      !db
+        .prepare("SELECT 1 FROM group_buys WHERE product_id=? AND status IN('open','threshold_met')")
+        .get(p.id),
+  );
+  assert.ok(free, 'a seller product without an open group');
+  const created = await seller.call('POST', '/api/seller/groups', {
+    productId: free.id,
+    targetQty: free.packSize * 20,
+    minMemberQty: free.packSize,
+  });
+  assert.equal(created.status, 201);
+  assert.match(created.body.code, /^[A-HJ-NP-Z2-9]{6}$/);
+
+  const { c, addressId } = await newBuyer('+998907777001');
+  const room = (await c.call('GET', '/api/rooms/' + created.body.code)).body;
+  assert.equal(room.id, created.body.id);
+  const joined = await c.call(
+    'POST',
+    `/api/groups/${room.id}/join`,
+    { qty: free.packSize, addressId },
+    { 'Idempotency-Key': 'room-join-1' },
+  );
+  assert.equal(joined.status, 201);
+  assert.equal((await c.call('GET', '/api/rooms/' + created.body.code)).body.mine.qty, free.packSize);
 });
